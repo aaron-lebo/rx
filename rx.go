@@ -19,6 +19,7 @@ import (
 var (
 	dir     string
 	history map[string]record
+    keywords []string
 )
 
 type record struct {
@@ -113,7 +114,7 @@ func strSize(size float64) string {
 	return fmt.Sprintf("%.2f MB", size)
 }
 
-func saveHistory(keywords []string) (sum record) {
+func saveHistory() (sum record) {
 	files := make([]string, len(history))
 	var i int
 	for f := range history {
@@ -206,7 +207,7 @@ func runLine(line []byte, enc *json.Encoder, comments bool, keywords [][]string,
 	}
 }
 
-func runFile(file string, keywords []string) {
+func runFile(file string) {
 	start := time.Now()
 	f, err := os.Open(file)
 	check(err)
@@ -267,13 +268,13 @@ func main() {
 	var sum record
 	files, err := filepath.Glob(os.Args[1])
 	check(err)
-	keywords := strings.Split(args2, ",")
+	keywords = strings.Split(args2, ",")
 	for i, k := range keywords {
 		keywords[i] = strings.TrimSpace(k)
 	}
 	for _, f := range files {
-		runFile(f, keywords)
-		sum = saveHistory(keywords)
+		runFile(f)
+		sum = saveHistory()
 	}
 	fmt.Println("*", str(sum.Time), str(sum.NumIn))
 }
