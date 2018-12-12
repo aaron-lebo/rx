@@ -194,9 +194,9 @@ func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
 	}
 	words := strings.Fields(strings.ToLower(text))
 	for i, k := range keywords {
-		var match bool
+		match := true
 		for _, k := range strings.Split(k, " and ") {
-			match = contains(words, k)
+			match = match && contains(words, k)
 		}
 		if match {
 			enc.Encode(obj)
@@ -261,7 +261,6 @@ func main() {
 		keywords[i] = strings.TrimSpace(k)
 	}
 
-	sort.Strings(keywords)
 	dir = "out/" + strings.Join(keywords, "-") + "/"
 	os.MkdirAll(dir, 0755)
 	loadHistory()
