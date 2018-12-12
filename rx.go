@@ -166,11 +166,18 @@ func saveHistory() (sum record) {
 	return
 }
 
-func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
-	rec.NumIn++
+func contains(strs []string, str string) bool {
+	for _, s := range strs {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
 
-	var obj interface{}
+func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
 	var text string
+	var obj interface{}
 	if comments {
 		var c comment
 		check(json.Unmarshal(line, &c))
@@ -185,15 +192,17 @@ func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
 		text = s.Title + s.Selftext
 		obj = s
 	}
-outer:
-	for _, f := range strings.Fields(strings.ToLower(text)) {
-		for i, k := range keywords {
-			if f == k {
-				enc.Encode(obj)
-				rec.NumOut++
-				rec.Counts[i]++
-				break outer
-			}
+	words := strings.Fields(strings.ToLower(text))
+	for i, k := range keywords {
+		var match bool
+		for _, k := range strings.Split(k, " and ") {
+			match = contains(words, k)
+		}
+		if match {
+			enc.Encode(obj)
+			rec.NumOut++
+			rec.Counts[i]++
+			break
 		}
 	}
 }
@@ -225,12 +234,12 @@ func runFile(file string) {
 		if err != nil {
 			break
 		}
+		rec.NumIn++
 		runLine(line, enc, comments, &rec)
 		if time.Since(lastTime).Seconds() > 1.0 {
 			fmt.Printf("%v %v %v   \r", file, str(time.Since(start)), rec.NumIn)
 			lastTime = time.Now()
 		}
-
 	}
 
 	rec.Time = time.Since(start)
@@ -247,7 +256,11 @@ func runFile(file string) {
 }
 
 func main() {
-	keywords = strings.Fields(strings.ToLower(os.Args[2]))
+	keywords = strings.Split(strings.ToLower(os.Args[2]), ",")
+	for i, k := range keywords {
+		keywords[i] = strings.TrimSpace(k)
+	}
+
 	sort.Strings(keywords)
 	dir = "out/" + strings.Join(keywords, "-") + "/"
 	os.MkdirAll(dir, 0755)
