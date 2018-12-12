@@ -17,9 +17,8 @@ import (
 )
 
 var (
-	keywords []string
-	dir      string
-	history  map[string]record
+	dir     string
+	history map[string]record
 )
 
 type record struct {
@@ -114,7 +113,7 @@ func strSize(size float64) string {
 	return fmt.Sprintf("%.2f MB", size)
 }
 
-func saveHistory() (sum record) {
+func saveHistory(keywords []string) (sum record) {
 	files := make([]string, len(history))
 	var i int
 	for f := range history {
@@ -175,7 +174,7 @@ func contains(strs []string, str string) bool {
 	return false
 }
 
-func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
+func runLine(line []byte, enc *json.Encoder, comments bool, keywords [][]string, rec *record) {
 	var text string
 	var obj interface{}
 	if comments {
@@ -195,7 +194,7 @@ func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
 	words := strings.Fields(strings.ToLower(text))
 	for i, k := range keywords {
 		match := true
-		for _, k := range strings.Split(k, " and ") {
+		for _, k := range k {
 			match = match && contains(words, k)
 		}
 		if match {
@@ -207,7 +206,7 @@ func runLine(line []byte, enc *json.Encoder, comments bool, rec *record) {
 	}
 }
 
-func runFile(file string) {
+func runFile(file string, keywords []string) {
 	start := time.Now()
 	f, err := os.Open(file)
 	check(err)
@@ -227,6 +226,10 @@ func runFile(file string) {
 	enc := json.NewEncoder(w)
 
 	comments := strings.Contains(file, "RC_")
+	splitKeywords := make([][]string, len(keywords))
+	for i, k := range keywords {
+		splitKeywords[i] = strings.Split(k, " and ")
+	}
 	rec := record{Counts: make([]int, len(keywords))}
 	lastTime := time.Now()
 	for {
@@ -235,7 +238,7 @@ func runFile(file string) {
 			break
 		}
 		rec.NumIn++
-		runLine(line, enc, comments, &rec)
+		runLine(line, enc, comments, splitKeywords, &rec)
 		if time.Since(lastTime).Seconds() > 1.0 {
 			fmt.Printf("%v %v %v   \r", file, str(time.Since(start)), rec.NumIn)
 			lastTime = time.Now()
@@ -256,21 +259,21 @@ func runFile(file string) {
 }
 
 func main() {
-	keywords = strings.Split(strings.ToLower(os.Args[2]), ",")
-	for i, k := range keywords {
-		keywords[i] = strings.TrimSpace(k)
-	}
-
-	dir = "out/" + strings.Join(keywords, "-") + "/"
+	args2 := strings.ToLower(os.Args[2])
+	dir = "out/" + strings.Join(strings.Fields(strings.Replace(args2, ",", "", -1)), "-") + "/"
 	os.MkdirAll(dir, 0755)
 	loadHistory()
 
 	var sum record
 	files, err := filepath.Glob(os.Args[1])
 	check(err)
+	keywords := strings.Split(args2, ",")
+	for i, k := range keywords {
+		keywords[i] = strings.TrimSpace(k)
+	}
 	for _, f := range files {
-		runFile(f)
-		sum = saveHistory()
+		runFile(f, keywords)
+		sum = saveHistory(keywords)
 	}
 	fmt.Println("*", str(sum.Time), str(sum.NumIn))
 }
