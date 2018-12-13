@@ -17,9 +17,9 @@ import (
 )
 
 var (
-	dir     string
-	history map[string]record
-    keywords []string
+	dir      string
+	history  map[string]record
+	keywords []string
 )
 
 type record struct {
@@ -175,7 +175,7 @@ func contains(strs []string, str string) bool {
 	return false
 }
 
-func runLine(line []byte, enc *json.Encoder, comments bool, keywords [][]string, rec *record) {
+func runLine(line []byte, comments bool, keywords [][]string, enc *json.Encoder, rec *record) {
 	var text string
 	var obj interface{}
 	if comments {
@@ -213,24 +213,29 @@ func runFile(file string) {
 	check(err)
 	defer f.Close()
 	r := bufio.NewReader(f)
-	r = bufio.NewReader(bzip2.NewReader(r))
-
-	_, file = filepath.Split(f.Name())
-	//ext := filepath.Ext(file)
-	file = strings.Split(file, ".")[0]
-	fOut, err := os.Create(dir + file + ".xz")
-	check(err)
-	defer fOut.Close()
-	w, err := xz.NewWriter(bufio.NewWriter(fOut))
-	check(err)
-	defer w.Close()
-	enc := json.NewEncoder(w)
+	if filepath.Ext(file) == "bz2" {
+		r = bufio.NewReader(bzip2.NewReader(r))
+	} else {
+		r1, err := xz.NewReader(r)
+		check(err)
+		r = bufio.NewReader(r1)
+	}
 
 	comments := strings.Contains(file, "RC_")
 	splitKeywords := make([][]string, len(keywords))
 	for i, k := range keywords {
 		splitKeywords[i] = strings.Split(k, " and ")
 	}
+
+	_, file = filepath.Split(f.Name())
+	f1, err := os.Create(dir + strings.Split(file, ".")[0] + ".xz")
+	check(err)
+	defer f1.Close()
+	w, err := xz.NewWriter(bufio.NewWriter(f1))
+	check(err)
+	defer w.Close()
+	enc := json.NewEncoder(w)
+
 	rec := record{Counts: make([]int, len(keywords))}
 	lastTime := time.Now()
 	for {
@@ -239,7 +244,7 @@ func runFile(file string) {
 			break
 		}
 		rec.NumIn++
-		runLine(line, enc, comments, splitKeywords, &rec)
+		runLine(line, comments, splitKeywords, enc, &rec)
 		if time.Since(lastTime).Seconds() > 1.0 {
 			fmt.Printf("%v %v %v   \r", file, str(time.Since(start)), rec.NumIn)
 			lastTime = time.Now()
@@ -248,13 +253,13 @@ func runFile(file string) {
 
 	rec.Time = time.Since(start)
 	sq := 1000.0 * 1000.0
-	fStat, err := f.Stat()
+	stat, err := f.Stat()
 	check(err)
-	rec.SizeIn = float64(fStat.Size()) / sq
+	rec.SizeIn = float64(stat.Size()) / sq
 	w.Close()
-	fOutStat, err := fOut.Stat()
+	stat, err = f1.Stat()
 	check(err)
-	rec.SizeOut = float64(fOutStat.Size()) / sq
+	rec.SizeOut = float64(stat.Size()) / sq
 	history[file] = rec
 	fmt.Println(file, str(rec.Time), rec.NumIn)
 }
