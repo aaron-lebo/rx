@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+    "regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -166,16 +167,7 @@ func saveHistory() (sum record) {
 	return
 }
 
-func contains(strs []string, str string) bool {
-	for _, s := range strs {
-		if str == s {
-			return true
-		}
-	}
-	return false
-}
-
-func runLine(line []byte, comments bool, keywords [][]string, enc *json.Encoder, rec *record) {
+func runLine(line []byte, comments bool, keywords [][]*regexp.Regexp, enc *json.Encoder, rec *record) {
 	var text string
 	var obj interface{}
 	if comments {
@@ -192,11 +184,11 @@ func runLine(line []byte, comments bool, keywords [][]string, enc *json.Encoder,
 		text = s.Title + s.Selftext
 		obj = s
 	}
-	words := strings.Fields(strings.ToLower(text))
+	text = strings.ToLower(text)
 	for i, k := range keywords {
 		match := true
 		for _, k := range k {
-			match = match && contains(words, k)
+			match = match && k.MatchString(text)
 		}
 		if match {
 			enc.Encode(obj)
@@ -207,13 +199,13 @@ func runLine(line []byte, comments bool, keywords [][]string, enc *json.Encoder,
 	}
 }
 
-func runFile(file string) {
+func runFile(file string, keywords [][]*regexp.Regexp) {
 	start := time.Now()
 	f, err := os.Open(file)
 	check(err)
 	defer f.Close()
 	r := bufio.NewReader(f)
-	if filepath.Ext(file) == "bz2" {
+	if filepath.Ext(file) == ".bz2" {
 		r = bufio.NewReader(bzip2.NewReader(r))
 	} else {
 		r1, err := xz.NewReader(r)
@@ -222,10 +214,6 @@ func runFile(file string) {
 	}
 
 	comments := strings.Contains(file, "RC_")
-	splitKeywords := make([][]string, len(keywords))
-	for i, k := range keywords {
-		splitKeywords[i] = strings.Split(k, " and ")
-	}
 
 	_, file = filepath.Split(f.Name())
 	f1, err := os.Create(dir + strings.Split(file, ".")[0] + ".xz")
@@ -244,7 +232,7 @@ func runFile(file string) {
 			break
 		}
 		rec.NumIn++
-		runLine(line, comments, splitKeywords, enc, &rec)
+		runLine(line, comments, keywords, enc, &rec)
 		if time.Since(lastTime).Seconds() > 1.0 {
 			fmt.Printf("%v %v %v   \r", file, str(time.Since(start)), rec.NumIn)
 			lastTime = time.Now()
@@ -265,20 +253,27 @@ func runFile(file string) {
 }
 
 func main() {
-	args2 := strings.ToLower(os.Args[2])
-	dir = "out/" + strings.Join(strings.Fields(strings.Replace(args2, ",", "", -1)), "-") + "/"
+	dir = fmt.Sprintf("out/%v/", time.Now().Unix())
 	os.MkdirAll(dir, 0755)
 	loadHistory()
 
 	var sum record
 	files, err := filepath.Glob(os.Args[1])
 	check(err)
-	keywords = strings.Split(args2, ",")
+	keywords = strings.Split(strings.ToLower(os.Args[2]), ",")
 	for i, k := range keywords {
 		keywords[i] = strings.TrimSpace(k)
 	}
+	splitKeywords := make([][]*regexp.Regexp, len(keywords))
+	for i, k := range keywords {
+		parts := strings.Split(k, " and ")
+        splitKeywords[i] = make([]*regexp.Regexp, len(parts))
+        for i1, p := range parts {
+            splitKeywords[i][i1] = regexp.MustCompile(`\b` + p + `\b`)
+        }
+	}
 	for _, f := range files {
-		runFile(f)
+		runFile(f, splitKeywords)
 		sum = saveHistory()
 	}
 	fmt.Println("*", str(sum.Time), str(sum.NumIn))
