@@ -10,7 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-    "regexp"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -267,10 +267,10 @@ func main() {
 	splitKeywords := make([][]*regexp.Regexp, len(keywords))
 	for i, k := range keywords {
 		parts := strings.Split(k, " and ")
-        splitKeywords[i] = make([]*regexp.Regexp, len(parts))
-        for i1, p := range parts {
-            splitKeywords[i][i1] = regexp.MustCompile(`\b` + p + `\b`)
-        }
+		splitKeywords[i] = make([]*regexp.Regexp, len(parts))
+		for i1, p := range parts {
+			splitKeywords[i][i1] = regexp.MustCompile(`\b` + p + `\b`)
+		}
 	}
 	for _, f := range files {
 		runFile(f, splitKeywords)

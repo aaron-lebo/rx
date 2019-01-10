@@ -3,11 +3,14 @@ import lzma
 import sys
 
 total = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+things = []
 with lzma.open(sys.argv[1]) as f:
     try:
         for n, line in enumerate(f):
-            json.dump(json.loads(line), sys.stdout, indent=2)
+            things.append(json.loads(line))
             if total and n + 1 == total:
                 break
     except EOFError:
         pass
+
+json.dump(things, sys.stdout, indent=2)
