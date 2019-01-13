@@ -17,11 +17,7 @@ import (
 	"time"
 )
 
-var (
-	dir      string
-	history  map[string]record
-	keywords []string
-)
+var history map[string]record
 
 type record struct {
 	Time            time.Duration
@@ -61,7 +57,7 @@ func check(err error) {
 
 func loadHistory() {
 	history = make(map[string]record)
-	f, err := os.Open(dir + "history.csv")
+	f, err := os.Open("out/history.csv")
 	if err != nil {
 		return
 	}
@@ -115,7 +111,7 @@ func strSize(size float64) string {
 	return fmt.Sprintf("%.2f MB", size)
 }
 
-func saveHistory() (sum record) {
+func saveHistory(keywords []string) (sum record) {
 	files := make([]string, len(history))
 	var i int
 	for f := range history {
@@ -124,7 +120,7 @@ func saveHistory() (sum record) {
 	}
 	sort.Strings(files)
 
-	f, err := os.Create(dir + "history.csv")
+	f, err := os.Create("out/history.csv")
 	check(err)
 	defer f.Close()
 	w := csv.NewWriter(f)
@@ -216,7 +212,7 @@ func runFile(file string, keywords [][]*regexp.Regexp) {
 	comments := strings.Contains(file, "RC_")
 
 	_, file = filepath.Split(f.Name())
-	f1, err := os.Create(dir + strings.Split(file, ".")[0] + ".xz")
+	f1, err := os.Create(fmt.Sprintf("out/%v.xz", strings.Split(file, ".")[0]))
 	check(err)
 	defer f1.Close()
 	w, err := xz.NewWriter(bufio.NewWriter(f1))
@@ -253,14 +249,13 @@ func runFile(file string, keywords [][]*regexp.Regexp) {
 }
 
 func main() {
-	dir = fmt.Sprintf("out/%v/", time.Now().Unix())
-	os.MkdirAll(dir, 0755)
+	os.MkdirAll("out", 0755)
 	loadHistory()
 
 	var sum record
 	files, err := filepath.Glob(os.Args[1])
 	check(err)
-	keywords = strings.Split(strings.ToLower(os.Args[2]), ",")
+	keywords := strings.Split(strings.ToLower(os.Args[2]), ",")
 	for i, k := range keywords {
 		keywords[i] = strings.TrimSpace(k)
 	}
@@ -274,7 +269,7 @@ func main() {
 	}
 	for _, f := range files {
 		runFile(f, splitKeywords)
-		sum = saveHistory()
+		sum = saveHistory(keywords)
 	}
 	fmt.Println("*", str(sum.Time), str(sum.NumIn))
 }
