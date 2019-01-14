@@ -85,8 +85,6 @@ func loadHistory() {
 
 func str(val interface{}) string {
 	switch v := val.(type) {
-	case float32:
-		return fmt.Sprintf("%.4f", v)
 	case float64:
 		return fmt.Sprintf("%.2f", v)
 	case time.Duration:
@@ -102,6 +100,10 @@ func str(val interface{}) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+func str64(f1, f2 float64) string {
+    return fmt.Sprintf("%.5f", f1 / f2)
 }
 
 func strSize(size float64) string {
@@ -141,8 +143,8 @@ func saveHistory(keywords []string) (sum record) {
 		}
 		w.Write(append([]string{
 			f, str(r.Time),
-			str(r.SizeIn), str(r.SizeOut), str(float32(r.SizeOut / r.SizeIn)),
-			str(r.NumIn), str(r.NumOut), str(float32(r.NumOut) / float32(r.NumIn)),
+			str(r.SizeIn), str(r.SizeOut), str64(r.SizeOut, r.SizeIn),
+			str(r.NumIn), str(r.NumOut), str64(float64(r.NumOut), float64(r.NumIn)),
 		}, counts...))
 
 		sum.Time += r.Time
@@ -157,8 +159,8 @@ func saveHistory(keywords []string) (sum record) {
 	}
 	w.Write(append([]string{
 		"", str(sum.Time),
-		strSize(sum.SizeIn), strSize(sum.SizeOut), str(float32(sum.SizeOut / sum.SizeIn)),
-		str(sum.NumIn), str(sum.NumOut), str(float32(sum.NumOut) / float32(sum.NumIn)),
+		strSize(sum.SizeIn), strSize(sum.SizeOut), str64(sum.SizeOut, sum.SizeIn),
+		str(sum.NumIn), str(sum.NumOut), str64(float64(sum.NumOut), float64(sum.NumIn)),
 	}, counts...))
 	return
 }
