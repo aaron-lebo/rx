@@ -3,16 +3,18 @@ import collections
 import csv
 import json
 import lzma
+import random
 import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--sub')
+parser.add_argument('-n', type=int)
+parser.add_argument('-s', '--sub')
 parser.add_argument('command', choices=['count-subs', 'sample'])
 parser.add_argument('files', nargs='*')
 args = parser.parse_args()
 
 total = 0#int(sys.argv[2]) if len(sys.argv) > 2 else 0
-counts, things = collections.OrderedDict([('*', collections.Counter())]),  []
+counts, things = collections.OrderedDict([('*', collections.Counter())]), []
 for file in args.files:
     count = collections.Counter()
     with lzma.open(file) as f:
@@ -40,4 +42,4 @@ if args.command == 'count-subs':
         for k, _ in counts['*'].most_common():
             w.writerow([k] + [vals.get(k, 0) for vals in counts.values()])
 else:
-    json.dump(things, sys.stdout, indent=2)
+    json.dump(random.sample(things, args.n) if args.n and args.n <= len(things) else things, sys.stdout, indent=2)
