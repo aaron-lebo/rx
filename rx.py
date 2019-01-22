@@ -6,6 +6,7 @@ import lzma
 import sys
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--sub')
 parser.add_argument('command', choices=['count-subs', 'sample'])
 parser.add_argument('files', nargs='*')
 args = parser.parse_args()
@@ -18,7 +19,10 @@ for file in args.files:
         try:
             for n, line in enumerate(f):
                 thing = json.loads(line)
-                count[thing['subreddit']] += 1
+                sub = thing['subreddit']
+                if args.sub and not sub in args.sub:
+                    continue
+                count[sub] += 1
                 things.append(thing)
                 if total and n + 1 == total:
                     break
