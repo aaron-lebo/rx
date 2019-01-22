@@ -1,5 +1,6 @@
 import argparse
 import collections
+import csv
 import json
 import lzma
 import sys
@@ -10,8 +11,9 @@ parser.add_argument('files', nargs='*')
 args = parser.parse_args()
 
 total = 0#int(sys.argv[2]) if len(sys.argv) > 2 else 0
-count, things = collections.Counter(),  []
+counts, things = collections.OrderedDict([('*', collections.Counter())]),  []
 for file in args.files:
+    count = collections.Counter()
     with lzma.open(file) as f:
         try:
             for n, line in enumerate(f):
@@ -22,9 +24,17 @@ for file in args.files:
                     break
         except EOFError:
             pass
+        finally:
+            counts[file] = count
+            counts['*'] += count
 
 if args.command == 'count-subs':
-    for item in count.most_common():
-        print(item)
+    most_common = counts['*'].most_common()
+    with open('subreddit-counts.csv', 'w') as f:
+        w = csv.writer(f)
+        w.writerow(['subreddit'] + [file.split('/')[-1] for file in counts])
+        w.writerow(['*'] + [sum(counts[file].values()) for file in counts])
+        for k, _ in most_common:
+            w.writerow([k] + [counts[file].get(k, 0) for file in counts])
 else:
     json.dump(things, sys.stdout, indent=2)
