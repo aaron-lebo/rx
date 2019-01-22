@@ -29,12 +29,11 @@ for file in args.files:
             counts['*'] += count
 
 if args.command == 'count-subs':
-    most_common = counts['*'].most_common()
     with open('subreddit-counts.csv', 'w') as f:
         w = csv.writer(f)
         w.writerow(['subreddit'] + [file.split('/')[-1] for file in counts])
-        w.writerow(['*'] + [sum(counts[file].values()) for file in counts])
-        for k, _ in most_common:
-            w.writerow([k] + [counts[file].get(k, 0) for file in counts])
+        w.writerow(['*'] + [sum(vals.values()) for vals in counts.values()])
+        for k, _ in counts['*'].most_common():
+            w.writerow([k] + [vals.get(k, 0) for vals in counts.values()])
 else:
     json.dump(things, sys.stdout, indent=2)
