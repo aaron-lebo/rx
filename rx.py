@@ -13,21 +13,18 @@ parser.add_argument('command', choices=['count-subs', 'sample'])
 parser.add_argument('files', nargs='*')
 args = parser.parse_args()
 
-total = 0#int(sys.argv[2]) if len(sys.argv) > 2 else 0
 counts, things = collections.OrderedDict([('*', collections.Counter())]), []
 for file in args.files:
     count = collections.Counter()
     with lzma.open(file) as f:
         try:
-            for n, line in enumerate(f):
+            for line in f:
                 thing = json.loads(line)
                 sub = thing['subreddit']
                 if args.sub and not sub in args.sub:
                     continue
                 count[sub] += 1
                 things.append(thing)
-                if total and n + 1 == total:
-                    break
         except EOFError:
             pass
         finally:
