@@ -9,6 +9,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', type=int)
 parser.add_argument('-s', '--sub')
+parser.add_argument('--exclude', dest='exclude', action='store_true')
 parser.add_argument('command', choices=['count-subs', 'sample'])
 parser.add_argument('files', nargs='*')
 args = parser.parse_args()
@@ -20,10 +21,7 @@ for file in args.files:
         try:
             for line in f:
                 thing = json.loads(line)
-                sub = thing['subreddit']
-                if args.sub and not sub in args.sub:
-                    continue
-                count[sub] += 1
+                count[thing['subreddit']] += 1
                 things.append(thing)
         except EOFError:
             pass
@@ -39,4 +37,11 @@ if args.command == 'count-subs':
         for k, _ in counts['*'].most_common():
             w.writerow([k] + [vals.get(k, 0) for vals in counts.values()])
 else:
+    if args.sub:
+        things = [t for t in things if t['subreddit'] in args.sub]
+    elif args.exclude:
+        with open('excluded.txt') as f:
+            excluded = [sub for sub in f]
+        things = [t for t in things if not t['subreddit'] in excluded and counts['*'][t['subreddit']] > 1]
     json.dump(random.sample(things, args.n) if args.n and args.n <= len(things) else things, sys.stdout, indent=2)
+    print()
