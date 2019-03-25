@@ -30,7 +30,7 @@ for file in args.files:
             counts['*'] += count
 
 if args.command == 'count-subs':
-    with open('subreddit-counts.csv', 'w') as f:
+    with open('subreddits.csv', 'w') as f:
         w = csv.writer(f)
         w.writerow(['subreddit'] + [file.split('/')[-1] for file in counts])
         w.writerow(['*'] + [sum(vals.values()) for vals in counts.values()])
@@ -41,7 +41,7 @@ else:
         things = [t for t in things if t['subreddit'] in args.sub]
     elif args.exclude:
         with open('excluded.txt') as f:
-            excluded = [sub for sub in f]
+            excluded = [sub.strip() for sub in f]
         things = [t for t in things if not t['subreddit'] in excluded and counts['*'][t['subreddit']] > 1]
     json.dump(random.sample(things, args.n) if args.n and args.n <= len(things) else things, sys.stdout, indent=2)
     print()
