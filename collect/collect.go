@@ -40,7 +40,7 @@ func Run() {
 
 	files, err := filepath.Glob(os.Args[2] + "/RC*")
 	Check(err)
-	sum := Record{}
+	sum := &Record{}
 	for _, file := range files {
 		f, r, _ := Open(file)
 		f1, w, enc, rec := OpenWriter(f, "collect")
@@ -58,9 +58,9 @@ func Run() {
 				enc.Encode(c)
 				rec.NumOut++
 			}
-			UpdateProgress(&rec)
+			UpdateProgress(rec)
 		})
-		SaveHistory(f, f1, w, &rec, &sum, "collect", []string{})
+		SaveHistory(f, f1, w, rec, sum, "collect", []string{})
 	}
 	fmt.Println("*", Str(sum.Time), Str(sum.NumIn))
 }

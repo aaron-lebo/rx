@@ -192,13 +192,13 @@ func Open(file string) (*os.File, *bufio.Reader, bool) {
 	return f, r, strings.Contains(file, "RC_")
 }
 
-func OpenWriter(f *os.File, command string) (*os.File, *xz.Writer, *json.Encoder, Record) {
+func OpenWriter(f *os.File, command string) (*os.File, *xz.Writer, *json.Encoder, *Record) {
 	_, file := filepath.Split(f.Name())
 	f1, err := os.Create(fmt.Sprintf("out/%s/%v.xz", command, strings.Split(file, ".")[0]))
 	Check(err)
 	w, err := xz.NewWriter(bufio.NewWriter(f1))
 	Check(err)
-	return f1, w, json.NewEncoder(w), Record{File: file, Start: time.Now()}
+	return f1, w, json.NewEncoder(w), &Record{File: file, Start: time.Now()}
 }
 
 func ReadLine(r *bufio.Reader, fn func([]byte)) {

@@ -25,7 +25,7 @@ func Run() {
 			splitKeywords[i][i1] = regexp.MustCompile(`\b` + p + `\b`)
 		}
 	}
-	sum := Record{}
+	sum := &Record{}
 	for _, file := range files {
 		f, r, is_rc := Open(file)
 		f1, w, enc, rec := OpenWriter(f, "filter")
@@ -63,9 +63,9 @@ func Run() {
 				}
 			}
 
-			UpdateProgress(&rec)
+			UpdateProgress(rec)
 		})
-		SaveHistory(f, f1, w, &rec, &sum, "filter", keywords)
+		SaveHistory(f, f1, w, rec, sum, "filter", keywords)
 	}
 	fmt.Println("*", Str(sum.Time), Str(sum.NumIn))
 }
