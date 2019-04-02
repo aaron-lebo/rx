@@ -120,18 +120,18 @@ func SaveHistory(f, f1 *os.File, w *xz.Writer, rec *Record, command string, keyw
 	stat, err := f.Stat()
 	Check(err)
 	rec.SizeIn = float64(stat.Size()) / sq
-    w.Close()
+	w.Close()
 	stat, err = f1.Stat()
 	Check(err)
 	rec.SizeOut = float64(stat.Size()) / sq
 	history[rec.File] = *rec
 	fmt.Println(rec.File, Str(rec.Time), rec.NumIn)
 
-    files := make([]string, len(history))
-    var i int
+	files := make([]string, len(history))
+	var i int
 	for file := range history {
 		files[i] = file
-        i++
+		i++
 	}
 	sort.Strings(files)
 
@@ -176,7 +176,7 @@ func SaveHistory(f, f1 *os.File, w *xz.Writer, rec *Record, command string, keyw
 		strSize(sum.SizeIn), strSize(sum.SizeOut), str64(sum.SizeOut, sum.SizeIn),
 		Str(sum.NumIn), Str(sum.NumOut), str64(float64(sum.NumOut), float64(sum.NumIn)),
 	}, counts...))
-    return
+	return
 }
 
 func Open(file string) (*os.File, *bufio.Reader, bool) {
@@ -203,13 +203,13 @@ func OpenWriter(f *os.File, command string) (*os.File, *xz.Writer, *json.Encoder
 }
 
 func ReadLine(r *bufio.Reader, fn func([]byte)) {
-    for {
-        line, err := r.ReadBytes('\n')
-        if err != nil {
-            break
-        }
-        fn(line)
-    }
+	for {
+		line, err := r.ReadBytes('\n')
+		if err != nil {
+			break
+		}
+		fn(line)
+	}
 }
 
 func UpdateProgress(rec *Record) {
