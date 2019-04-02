@@ -89,7 +89,7 @@ func Str(val interface{}) string {
 	case float64:
 		return fmt.Sprintf("%.2f", v)
 	case time.Duration:
-		h := int64(math.Mod(v.Hours(), 24))
+		h := int64(v.Hours())
 		m := int64(math.Mod(v.Minutes(), 60))
 		s := int64(math.Mod(v.Seconds(), 60))
 		if h > 0 {
@@ -114,7 +114,7 @@ func strSize(size float64) string {
 	return fmt.Sprintf("%.2f MB", size)
 }
 
-func SaveHistory(f, f1 *os.File, w *xz.Writer, rec, sum *Record, command string, keywords []string) {
+func SaveHistory(f, f1 *os.File, w *xz.Writer, rec *Record, command string, keywords []string) (sum Record) {
 	sq := 1000.0 * 1000.0
 	rec.Time = time.Since(rec.Start)
 	stat, err := f.Stat()
@@ -128,10 +128,10 @@ func SaveHistory(f, f1 *os.File, w *xz.Writer, rec, sum *Record, command string,
 	fmt.Println(rec.File, Str(rec.Time), rec.NumIn)
 
     files := make([]string, len(history))
-	var i int
+    var i int
 	for file := range history {
 		files[i] = file
-		i++
+        i++
 	}
 	sort.Strings(files)
 
@@ -176,6 +176,7 @@ func SaveHistory(f, f1 *os.File, w *xz.Writer, rec, sum *Record, command string,
 		strSize(sum.SizeIn), strSize(sum.SizeOut), str64(sum.SizeOut, sum.SizeIn),
 		Str(sum.NumIn), Str(sum.NumOut), str64(float64(sum.NumOut), float64(sum.NumIn)),
 	}, counts...))
+    return
 }
 
 func Open(file string) (*os.File, *bufio.Reader, bool) {
