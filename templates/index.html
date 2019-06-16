@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <title>
+      reddit explorer
+      {% if date and subreddit %}
+        - {{ ' & '.join([date, subreddit]) }}
+      {% elif date or subreddit %}
+        - {{ date or subreddit }}
+      {% endif %}
+    </title>
+  </head>
+  <body>
+    <div class="container my-4">
+      <h4 class="mb-3">
+      {% if date and subreddit %}
+        {{ ' & '.join([date, subreddit]) }}
+      {% elif date or subreddit %}
+        {{ date or subreddit }}
+      {% else %}
+        all
+      {% endif %}
+      ({{ start + 1 }} - {{ end }} of {{ n }} items)
+      </h4>
+      <div class="row">
+        <div class="col-sm-9 small">
+          <ul class="list-unstyled">
+          {% for s in things %}
+            <li class="mb-3">
+              {% if s.body %}on: {% endif %}
+              <a href="{{ s.reddit_url }}">{{ s.title }}</a>
+              | <a href="http://reddit.com/r/{{ s.subreddit }}">{{ s.subreddit }}</a>
+              {% if s.author == '[deleted]' %}
+                | [deleted]
+              {% else %}
+                | <a href="http://reddit.com/u/{{ s.author }}">{{ s.author }}</a>
+              {% endif %}
+              | {{ s.created }}
+              <div><a style="color: #006621" href="{{ s.url }}">{{ s.url_text }}</a></div>
+              <p class="mt-1 text-break">{{ s.body or s.selftext }}</p>
+            </li>
+          {% endfor %}
+          </ul>
+        </div>
+        <div class="col-sm-3 pl-2">
+          <nav>
+            <ul class="justify-content-center pagination">
+            {% for p in range(page - 1 if page > 1 else page, page + 2 if n > end else page + 1) %}
+              <li class="page-item{% if p == page  %} active{% endif %}" aria-current="page">
+                <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=p) }}">{{ p }}</a>
+              </li>
+            {% endfor %}
+            </ul>
+          </nav>
+          <h4>dates</h4>
+          <ul class="list-group pb-3 pt-2">
+            <a class="list-group-item list-group-item-light list-group-action{% if not date %} active{% endif %}"
+               href="{{ url_for('index', subreddit=request.args.get('subreddit')) }}">
+              all
+              <span class="badge badge-secondary float-right">{{ total }}</span>
+            </a>
+            {% for d, n in dates %}
+              <a class="list-group-item list-group-item-light list-group-action{% if d == date %} active{% endif %}"
+                 href="{{ url_for('index', date=d, subreddit=request.args.get('subreddit')) }}">
+                {{ d }}
+                <span class="badge badge-secondary float-right">{{ n }}</span>
+              </a>
+            {% endfor %}
+          </ul>
+          <h4>subreddits</h4>
+          <ul class="list-group pt-2">
+            <a class="list-group-item list-group-item-light list-group-action{% if not subreddit %} active{% endif %}"
+               href="{{ url_for('index', date=request.args.get('date')) }}">
+              all
+              <span class="badge badge-secondary float-right">{{ total }}</span>
+            </a>
+            {% for s, n in subreddits %}
+              <a class="list-group-item list-group-item-light list-group-action{% if s == subreddit %} active{% endif %}"
+                 href="{{ url_for('index', date=request.args.get('date'), subreddit=s) }}">
+                {{ s }}
+                <span class="badge badge-secondary float-right">{{ n }}</span>
+              </a>
+            {% endfor %}
+          </ul>
+        </div
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  </body>
+</html>
