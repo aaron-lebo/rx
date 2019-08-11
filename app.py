@@ -1,10 +1,14 @@
+import codecs
 from collections import Counter, defaultdict, OrderedDict
 from datetime import datetime
+import hashlib
+import math
 import re
 import sqlite3
 
 from flask import Flask, g, render_template, request
 import jinja2
+import requests
 
 app = Flask(__name__)
 
@@ -84,27 +88,28 @@ with app.app_context():
     for k, v in subreddits.items():
         subreddits_cnt[k] = len(v)
 
+def get_ids(date, subreddit):
+    d_ids = dates.get(date, set())
+    s_ids = subreddits.get(subreddit, set())
+    return d_ids & s_ids if d_ids and s_ids else d_ids or s_ids
+
 @app.route('/')
 def index():
     date = request.args.get('date')
     subreddit = request.args.get('subreddit')
     page = int(request.args.get('page', 1))
-    d_ids = dates.get(date, set())
-    s_ids = subreddits.get(subreddit, set())
-    if d_ids and s_ids:
-        ids = d_ids & s_ids
-    else:
-        ids = d_ids or s_ids
+    ids = get_ids(date, subreddit)
     things1 = [v for k, v in things.items() if k in ids] if date or subreddit else list(things.values())
     n = len(ids or things1)
-    end = page * 500
-    start = end - 500
+    end = page * 250
+    start = end - 250
     return render_template(
         'index.html',
         date = date,
         subreddit = subreddit,
         start = start,
         page = page,
+        last_page = math.ceil(n / 250),
         end = end if end < n else n,
         n = n,
         things = things1[start:end],
@@ -112,3 +117,21 @@ def index():
         dates = dates_cnt.most_common(),
         subreddits = subreddits_cnt.most_common()
     )
+
+@app.route('/cache')
+def cache():
+    for date, subreddit in [(d, s) for d in [None] + list(dates) for s in [None] + list(subreddits)]:
+        if subreddit == '':
+            continue
+
+        ids = get_ids(date, subreddit)
+        n = len(ids if date or subreddit else things)
+        if not date and n < 10:
+            continue
+
+        for page in range(1, math.ceil(n / 250) + 1):
+            res = requests.get('http://127.0.0.1:5000', params=dict(date=date, subreddit=subreddit, page=page))
+            with codecs.open(f'static/{date or ""}_{subreddit or ""}_{page}.html', 'w', 'utf8') as file:
+                file.write(res.text)
+
+    return 'done'

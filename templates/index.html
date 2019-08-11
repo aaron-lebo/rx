@@ -45,14 +45,24 @@
           {% endfor %}
           </ul>
         </div>
-        <div class="col-sm-3 pl-2">
+        <div class="col-sm-3 pl-1">
           <nav>
             <ul class="justify-content-center pagination">
-            {% for p in range(page - 1 if page > 1 else page, page + 2 if n > end else page + 1) %}
-              <li class="page-item{% if p == page  %} active{% endif %}" aria-current="page">
-                <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=p) }}">{{ p }}</a>
+              <li class="page-item{% if page == 1 %} disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=1) }}" aria-label="first">&laquo;</a>
               </li>
-            {% endfor %}
+              <li class="page-item{% if page == 1 %} disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=page - 1) }}" aria-label="previous">-</a>
+              </li>
+              <li class="page-item active" aria-current="page">
+                <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=page) }}">{{ page }}</a>
+              </li>
+              <li class="page-item{% if page == last_page %} disabled{% endif %}">
+                  <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=page + 1) }}" aria-label="next">+</a>
+              </li>
+              <li class="page-item {% if page == last_page %} disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('index', date=date, subreddit=subreddit, page=last_page) }}" aria-label="last">&raquo</a>
+              </li>
             </ul>
           </nav>
           <h4>dates</h4>
@@ -78,13 +88,16 @@
               <span class="badge badge-secondary float-right">{{ total }}</span>
             </a>
             {% for s, n in subreddits %}
+              {% if n >= 10 %}
               <a class="list-group-item list-group-item-light list-group-action{% if s == subreddit %} active{% endif %}"
                  href="{{ url_for('index', date=request.args.get('date'), subreddit=s) }}">
                 {{ s }}
                 <span class="badge badge-secondary float-right">{{ n }}</span>
               </a>
+              {% endif %}
             {% endfor %}
           </ul>
+          <p class="pt-2">subreddits with fewer than 10 items are excluded</p>
         </div
       </div>
     </div>

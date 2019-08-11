@@ -21,9 +21,10 @@ russia = ('russia', 'russian', 'russians')
 ukraine = ('ukraine', 'ukrainian', 'ukrainians')
 query = [(ukraine, russia), (crimea, russia), (ukraine, putin), (crimea, putin)]
 
+shared_fields = 'id author subreddit created_utc retrieved_on edited'.split()
 db_fields = dict(
-    comments = 'id author subreddit created_utc retrieved_on edited body link_id parent_id matches'.split(),
-    submissions = 'id author subreddit created_utc retrieved_on edited title url selftext matches'.split(),
+    comments = shared_fields + 'body link_id parent_id matches'.split(),
+    submissions = shared_fields + 'title url selftext matches'.split(),
 )
 
 con = sqlite3.connect('rx.db')
@@ -43,8 +44,8 @@ def print_status(file, start, objs, n, end='\n'):
     print(file, datetime.datetime.now() - start, len(objs), 'selected /', n, 'total', end=end)
 
 fields = db_fields[args.command]
-comments = args.command == 'comments'
-submissions = not comments
+is_comments = args.command == 'comments'
+is_submissions = not is_comments
 
 pattern = re.compile('\W+')
 
@@ -53,7 +54,7 @@ def add_obj(objs, obj, cnt, key):
     ids.add(obj['id'])
     cnt[key] += 1
 
-for filepath in glob.glob(os.path.join(args.dir, 'RC_*' if comments else 'RS_*')):
+for filepath in glob.glob(os.path.join(args.dir, 'RC_*' if is_comments else 'RS_*')):
     file = os.path.basename(filepath)
     print(file, end='\r')
     if file in files:
@@ -69,17 +70,17 @@ for filepath in glob.glob(os.path.join(args.dir, 'RC_*' if comments else 'RS_*')
                 print_status(file, start, objs, n + 1, '\r')
 
             obj = json.loads(line)
-            id = ('t1_' if comments else 't3_') + obj['id']
+            id = ('t1_' if is_comments else 't3_') + obj['id']
             obj['id'] = id
             if id in ids:
                 continue
 
-            if submissions and args.u:
+            if is_submissions and args.u:
                 if id in link_ids:
                     add_obj(objs, obj, cnt, 'relatives')
                 continue
 
-            text = obj['body'] if comments else ' '.join(obj[k] for k in ('title', 'url', 'selftext'))
+            text = obj['body'] if is_comments else ' '.join(obj[k] for k in ('title', 'url', 'selftext'))
             words = pattern.split(text.lower())
             for or_clause in query:
                 matches = []
@@ -88,15 +89,17 @@ for filepath in glob.glob(os.path.join(args.dir, 'RC_*' if comments else 'RS_*')
                         if keyword in words:
                             matches.append(keyword)
                             break
+
                 if matches and len(matches) == len(or_clause):
                     obj['matches'] = ', '.join(matches)
                     add_obj(objs, obj, cnt, or_clause)
                     break
-            if comments and not obj.get('matches') and (obj['parent_id'] in ids or obj['link_id'] in ids):
+
+            if is_comments and not obj.get('matches') and (obj['parent_id'] in ids or obj['link_id'] in ids):
                 add_obj(objs, obj, cnt, 'relatives')
 
     print_status(file, start, objs, n + 1)
-    if comments or not args.u:
+    if is_comments or not args.u:
         match_cnt = {str(k): v for k, v in cnt.items() if not k == 'relatives'}
         con.execute('insert into results values (?, ?, ?, ?, ?)',
             (file, json.dumps(match_cnt), sum(match_cnt.values()), cnt['relatives'], n + 1))
