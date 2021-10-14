@@ -34,7 +34,7 @@ def save(i, t, what, f, cn, cr, n, xs, j, end='\n'):
 
 for i, f in enumerate(files):
     t = datetime.now()
-    fname = f.split('/')[-1][:7].lower()
+    fname = f.split('/')[-1].lower()
     what = 'comments' if fname.startswith('rc') else 'submissions'
     f = open(f)
     ks, cn, cr = get_db(fname, what)
