@@ -34,15 +34,15 @@ for i, f in enumerate(files):
     utc, bin = datetime(2001, 12, 31), DocBin() 
     for j, x in enumerate(qy.fetchall()):
         date, dt = utc.date(), datetime.fromtimestamp(x[1])
-        doc = nlp(x[2])
+        doc = nlp('\n'.join(x[2:4]))
         doc.user_data = dict(id=x[0])
         bin.add(doc)
-        if date.year != 2001 and date != dt.date():
-            bin.to_disk(f'{f[:3]}{date}.spacy')
-            bin = DocBin() 
         if not j % 100:
             t1 = datetime.now() - t
             print(f'{i+1:2} {nfiles}  {f}  {n:12,}  {utc}  {(j+1)/n*100:6.2f}%  {t1}', end='\r')
+        if date.year != 2001 and date != dt.date():
+            bin.to_disk(f'{f[:3]}{date}.spacy')
+            bin = DocBin() 
 
         utc = dt
 
