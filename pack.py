@@ -8,9 +8,9 @@ p = argparse.ArgumentParser()
 p.add_argument('file', nargs='+')
 args = p.parse_args()
 
-ks = 'id,created_utc integer,edited integer,retrieved_on integer,'
+ks = 'id,created_utc int,edited int,retrieved_on int,cat int,'
 comms = ('comments', ks+'link_id,parent_id,author,subreddit,body')
-subms = ('subissions', ks+'author,subreddit,url,title,selftext')
+subms = ('submissions', ks+'author,subreddit,url,title,selftext')
 
 cn = sqlite3.connect('rx.db')
 cr = cn.cursor()
@@ -20,6 +20,7 @@ for what, ks1 in [comms, subms]:
         unique = 'constraint unique_id unique (id)'
         cr.execute(f'create table {what}({ks1},{unique})')
         cr.execute(f'create index idx_{what}_id on {what}(id)')
+        cr.execute(f'create index idx_{what}_cat on {what}(cat)')
     except sqlite3.OperationalError:
         pass
 
@@ -28,7 +29,7 @@ nfiles = len(args.file)
 for i, f in enumerate(args.file):
     t = datetime.now()
     what, ks = comms if f.split('/')[-1].lower().startswith('rc') else subms
-    ks = ks.split(',')
+    ks = [k.split()[0] for k in ks.split(',')]
     f = open(f)
     n = sum(1 for x in f)
     f.seek(0)
@@ -41,9 +42,9 @@ for i, f in enumerate(args.file):
         x = json.loads(line)
         xs.append([x.get(k) for k in ks])
         if (not j % 100000) or j+1 == n:
-            t = datetime.now() - t
-            print(f'{i+1:2} {nfiles} {f.name} {n:12,} {(j+1)/n*100:6.2f}% {t}', end='\r')
-            cr.executemany(f'insert into {what} values (?, ?, ?, ?, ?, ?, ?, ?, ?)', xs)
+            t1 = datetime.now() - t
+            print(f'{i+1:2} {nfiles} {f.name} {n:12,} {(j+1)/n*100:6.2f}% {t1}', end='\r')
+            cr.executemany(f'insert into {what} values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', xs)
             cn.commit()
             xs = []
 
