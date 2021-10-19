@@ -8,36 +8,28 @@ p = argparse.ArgumentParser()
 p.add_argument('file', nargs='+')
 args = p.parse_args()
 
-def get_db(f, what):
-    ks = 'id,created_utc integer,edited integer,retrieved_on integer,'
-    subm_ks = ks + 'author,subreddit,url,title,selftext'
-    comm_ks = ks + 'link_id,parent_id,author,subreddit,body'
-    ks = comm_ks if what == 'comments' else subm_ks
-    cn = sqlite3.connect(f'{f}.db')
-    cr = cn.cursor()
+ks = 'id,created_utc integer,edited integer,retrieved_on integer,'
+comms = ('comments', ks+'link_id,parent_id,author,subreddit,body')
+subms = ('subissions', ks+'author,subreddit,url,title,selftext')
+
+cn = sqlite3.connect('rx.db')
+cr = cn.cursor()
+
+for what, ks1 in [comms, subms]:
     try:
         unique = 'constraint unique_id unique (id)'
-        cr.execute(f'create table {what}({ks},{unique})')
+        cr.execute(f'create table {what}({ks1},{unique})')
         cr.execute(f'create index idx_{what}_id on {what}(id)')
     except sqlite3.OperationalError:
         pass
-    return [k.split()[0] for k in ks.split(',')], cn, cr
 
-files = args.file
-nfiles = len(files)
+nfiles = len(args.file)
 
-def save(i, t, what, f, cn, cr, n, xs, j, end='\n'):
-    t = datetime.now() - t
-    print(f'{i+1:2} {nfiles} {f.name} {n:12,} {(j+1)/n*100:6.2f}% {t}', end=end)
-    cr.executemany(f'insert into {what} values (?, ?, ?, ?, ?, ?, ?, ?, ?)', xs)
-    cn.commit()
-
-for i, f in enumerate(files):
+for i, f in enumerate(args.file):
     t = datetime.now()
-    fname = f.split('/')[-1].lower()
-    what = 'comments' if fname.startswith('rc') else 'submissions'
+    what, ks = comms if f.split('/')[-1].lower().startswith('rc') else subms
+    ks = ks.split(',')
     f = open(f)
-    ks, cn, cr = get_db(fname, what)
     n = sum(1 for x in f)
     f.seek(0)
 
@@ -48,9 +40,11 @@ for i, f in enumerate(files):
 
         x = json.loads(line)
         xs.append([x.get(k) for k in ks])
-        if not j % 100000: 
-            save(i, t, what, f, cn, cr, n, xs, j, '\r')
+        if (not j % 100000) or j+1 == n:
+            t = datetime.now() - t
+            print(f'{i+1:2} {nfiles} {f.name} {n:12,} {(j+1)/n*100:6.2f}% {t}', end='\r')
+            cr.executemany(f'insert into {what} values (?, ?, ?, ?, ?, ?, ?, ?, ?)', xs)
+            cn.commit()
             xs = []
 
-    save(i, t, what, f, cn, cr, n, xs, j)
-    cn.close()
+print()
