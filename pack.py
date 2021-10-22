@@ -25,11 +25,12 @@ for what, ks1 in [comms, subms]:
         pass
 
 nfiles = len(args.file)
-
 for i, f in enumerate(args.file):
-    t = datetime.now()
+    start = t = datetime.now()
+
     what, ks = comms if f.split('/')[-1].lower().startswith('rc') else subms
     ks = [k.split()[0] for k in ks.split(',')]
+
     f = open(f)
     n = sum(1 for x in f)
     f.seek(0)
@@ -41,11 +42,9 @@ for i, f in enumerate(args.file):
 
         x = json.loads(line)
         xs.append([x.get(k) for k in ks])
-        if (not j % 100000) or j+1 == n:
-            t1 = datetime.now() - t
-            print(f'{i+1:2} {nfiles} {f.name} {n:12,} {(j+1)/n*100:6.2f}% {t1}', end='\r')
+        t1 = datetime.now()
+        if n == j+1 or (t1-t).total_seconds() > 1:
+            print(f'{i+1:2}  {nfiles}  {f.name}  {n:12,}  {(j+1)/n*100:6.2f}%  {t1-start}', end='\r')
             cr.executemany(f'insert into {what} values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', xs)
             cn.commit()
-            xs = []
-
-print()
+            xs, t = [], t1

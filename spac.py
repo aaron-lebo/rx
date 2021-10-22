@@ -1,54 +1,40 @@
 import argparse
 from datetime import datetime
 import sqlite3
-import time
 
 import spacy
 from spacy.tokens import DocBin
 
 p = argparse.ArgumentParser()
 p.add_argument('file', nargs='+')
-
 args = p.parse_args()
-files = args.file
-nfiles = len(files)
 
-def get_db(f, what):
-    ks = 'id,created_utc integer,edited integer,retrieved_on integer,'
-    subm_ks = ks + 'author,subreddit,url,title,selftext'
-    comm_ks = ks + 'link_id,parent_id,author,subreddit,body'
-    ks = comm_ks if what == 'comments' else subm_ks
-    cn = sqlite3.connect(f)
-    cr = cn.cursor()
-    return [k.split()[0] for k in ks.split(',')], cn, cr
+cn = sqlite3.connect('rx.db')
+cr = cn.cursor()
 
 nlp = spacy.load('en_core_web_lg')
 
-for i, f in enumerate(files):
-    t = datetime.now()
-    fname = f.split('/')[-1].lower()
-    what = 'comments' if fname.startswith('rc') else 'submissions'
-    ks, cn, cr = get_db(fname, what)
-    n = cr.execute(f'select count(*) from {what}').fetchone()[0]
-    qy = cr.execute(f'select id, created_utc, title, selftext from {what} order by id asc')
-    utc, bin = datetime(2001, 12, 31), DocBin() 
-    for j, x in enumerate(qy.fetchall()):
-        date, dt = utc.date(), datetime.fromtimestamp(x[1])
-        doc = nlp('\n'.join(x[2:4]))
-        doc.user_data = dict(id=x[0])
-        bin.add(doc)
-        if not j % 100:
-            t1 = datetime.now() - t
-            print(f'{i+1:2} {nfiles}  {f}  {n:12,}  {utc}  {(j+1)/n*100:6.2f}%  {t1}', end='\r')
-        if date.year != 2001 and date != dt.date():
-            bin.to_disk(f'{f[:3]}{date}.spacy')
-            bin = DocBin() 
+f = args.file[0] 
+n = cr.execute(f'select count(*) from submissions').fetchone()[0]
+qy = cr.execute(f'select id, created_utc, title, selftext from submissions order by id asc')
 
-        utc = dt
+start = t = datetime.now()
+utc = datetime(2001, 12, 31)
+bin = DocBin(store_user_data=True) 
+for i, x in enumerate(qy.fetchall()):
+    date = utc.date()
+    utc1 = datetime.fromtimestamp(x[1])
+    doc = nlp('\n'.join(x[2:4]))
+    doc.user_data = dict(id=x[0])
+    bin.add(doc)
 
-    t1 = datetime.now() - t
-    print(f'{i+1:2} {nfiles}  {f}  {n:12,}  {utc}  {(j+1)/n*100:6.2f}%  {t1}')
-    bin.to_disk(f'{f[:3]}{date}.spacy')
+    end = n == i + 1
+    t1 = datetime.now()
+    if end or (t1-t).total_seconds() > 1:
+        print(f'1 1  {f}  {n:12,}  {utc}  {(i+1)/n*100:6.2f}%  {t1-start}', end='\r')
+        t = t1
+    if end or date.year != 2001 and date != utc1.date():
+        bin.to_disk(f'rs_{date}.spacy')
+        bin = DocBin(store_user_data=True) 
 
-
-cn.close()
+    utc = utc1
