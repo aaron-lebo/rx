@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import sqlite3
 import os
 
@@ -15,7 +16,7 @@ nlp = spacy.load('en_core_web_lg')
 def match(tag, files):
     terms, combos = set(), []
     with open('terms.txt') as f:
-        for x in f.readlines():
+        for x in f:
             x = {y.strip() for y in x.split(',')}
             terms.update(x)
             if len(x) > 1: 
@@ -28,33 +29,35 @@ def match(tag, files):
     for i, f in enumerate(files):
         bin = DocBin().from_disk(f)
         n = len(bin)
-        bin1 = DocBin(attrs=[])
+
+        f = 'match/' + os.path.split(f)[1].replace('.spacy', '')
+        os.makedirs('match', exist_ok=1)
+        if os.path.isfile(f):
+            raise FileExistsError
+
+        out = open(f, 'wt')
         t = start = datetime.now()
         for j, d in enumerate(bin.get_docs(nlp.vocab)):
             ms = matcher(d)
             if ms:
                 d.user_data['matches'] = ms
                 ms = {d[bgn:end].text.lower() for _, bgn, end in ms}
-                for x in terms:
-                    if ms.issubset(x):
-                        d.user_user['combo'] = ms
-                        break
+                if len(ms) > 1:
+                    for x in combos:
+                        if x.issubset(ms):
+                            d.user_data['combo'] = tuple(ms) 
+                            break
 
-                bin1.add(d)
+                out.write(json.dumps(d.user_data) + '\n')
 
             end = n == j + 1
             t1 = datetime.now()
             if end or (t1-t).total_seconds() > 1:
                 end = '\n' if end else '\r'
-                print(f'{i:3,} {nfiles}  {f}  {n:12,}  {(j+1)/n*100:6.2f}%  {t1-start}', end=end)
+                print(f'{i+1:3,} {nfiles}  {f}  {n:12,}  {(j+1)/n*100:6.2f}%  {t1-start}', end=end)
                 t = t1
 
-        f = f'match/{os.path.split(f)[1]}'
-        if os.path.isfile(f):
-            raise FileExistsError
-
-        os.makedirs('match', exist_ok=1)
-        bin1.to_disk(f)
+        out.close()
 
 if __name__ == '__main__':
     match()
