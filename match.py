@@ -25,7 +25,7 @@ def main(tag: str, terms_file: str, files: List[str]):
         bin = DocBin().from_disk(f)
         bar = tqdm(bin.get_docs(nlp.vocab), total=len(bin))
         bar.set_description(f'{i}/{len(files)} {f}')
-        for j, d in enumerate(bar):
+        for d in bar:
             ms = matcher(d)
             if not ms: 
                 continue
@@ -35,7 +35,7 @@ def main(tag: str, terms_file: str, files: List[str]):
             for x in combos:
                 ok = True
                 for y in x:
-                    if not ms.intersection(y): 
+                    if not ms & y: 
                         ok = False
                         break
 
