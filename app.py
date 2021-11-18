@@ -1,137 +1,69 @@
-import codecs
-from collections import Counter, defaultdict, OrderedDict
-from datetime import datetime
-import hashlib
-import math
-import re
-import sqlite3
+import collections
+import glob
+import random
 
-from flask import Flask, g, render_template, request
-import jinja2
-import requests
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+import pandas as pd
+import spacy
+from spacy.tokens import DocBin
 
-app = Flask(__name__)
+app = FastAPI()
 
-things = OrderedDict()
-dates = defaultdict(set)
-dates_cnt = Counter()
-subreddits = defaultdict(set)
-subreddits_cnt = Counter()
+nlp = spacy.load('en_core_web_lg')
+bin = DocBin(store_user_data=True)
+try:
+    bin = bin.from_disk('train.spacy')
+except FileNotFoundError:
+    pass
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect('rx.db')
-    db.row_factory = sqlite3.Row
-    return db
+sam = {}
+sbrs = collections.defaultdict(collections.Counter)
 
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+@app.on_event('startup')
+async def load():
+    global sam, sbrs
+    done = set()
+    for x in bin.get_docs(nlp.vocab):
+        sbrs[x.user_data['subreddit']].update(x.cats)
+        done.add(x.user_data['id'])
 
-def append(submission, comment=None):
-    obj = submission = dict(submission)
-    if comment:
-        obj = obj.copy()
-        obj.update(dict(comment))
+    docs = set() 
+    fs = glob.glob('out/match/*.csv')
+    random.shuffle(fs)
+    for f in fs:
+        docs.update({x['id'] for _, x in pd.read_csv(f).iterrows() if x['id'] not in done})
 
-    id = obj['id']
-    created = datetime.utcfromtimestamp(obj['created_utc'])
-    subreddit = obj['subreddit']
+    sam = {x: None for x in random.sample(docs, 200)}
+    for f in fs:
+        bin1 = DocBin().from_disk(f'out/{f[10:-4]}.spacy')
+        for x in bin1.get_docs(nlp.vocab): 
+            id = x.user_data['id']
+            if id in sam:
+               sam[id] = x
+     
+ts = Jinja2Templates(directory='templates')
 
-    obj = dict(obj, created=created, url_text=obj['url'])
-    obj['reddit_url'] = '/'.join([
-        'http://reddit.com/r',
-        subreddit,
-        'comments',
-        submission['id'].replace('t3_', ''),
-        f'x/{id.replace("t1_", "")}' if comment else ''
-    ])
-    for match in obj['matches'].split(', '):
-        for k in ('body',) if comment else ('title', 'url_text', 'selftext'):
-            m = re.search(f'\\b({match})\\b' , obj[k], re.IGNORECASE)
-            if m:
-                start, end = m.span()
-                span = jinja2.Markup(f'<mark>{m.group()}</mark>')
-                obj[k] = obj[k][:start] + span + obj[k][end:]
-                break
+def render(f: str, r: Request, **kws):
+    return ts.TemplateResponse(f, dict(request=r, **kws))
 
-    dates[created.strftime('%b %Y')].add(id)
-    subreddits[subreddit].add(id)
-    things[id] = obj
+@app.get('/', response_class=HTMLResponse)
+async def cat(r: Request):
+    x = sam and list(sam.values())[0]
+    return render('cat.html', r, text=str(x), x=x.user_data, remaining=len(sam))
 
-with app.app_context():
-    cur = get_db().execute('select * from submissions order by id')
-    submissions = cur.fetchall()
-    cur.close()
-    for s in submissions:
-        if s[-1]:
-            append(s)
-            continue
+@app.post('/cat/s/{id}')
+async def cat_(id: str, cat: str=Form(...)):
+    if cat in ('yes', 'no', 'skip'):
+        x = sam[id]
+        x.cats = dict(yes=int(cat=='yes'), no=int(cat=='no'), skip=int(cat=='skip'))
+        bin.add(x)
+        bin.to_disk('train.spacy')
+        sbrs[x.user_data['subreddit']].update([cat])
+        del sam[id]
+    return RedirectResponse('/', status_code=303)
 
-        cur = get_db().execute("""
-            select * from comments where parent_id = ? and matches != ''
-            union
-            select * from comments where link_id = ? and matches != ''
-            order by id
-        """, (s[0], s[0]))
-        comments = cur.fetchall()
-        cur.close()
-        for c in comments:
-            append(s, c)
-
-    total = len(things)
-    for k, v in dates.items():
-        dates_cnt[k] = len(v)
-    for k, v in subreddits.items():
-        subreddits_cnt[k] = len(v)
-
-def get_ids(date, subreddit):
-    d_ids = dates.get(date, set())
-    s_ids = subreddits.get(subreddit, set())
-    return d_ids & s_ids if d_ids and s_ids else d_ids or s_ids
-
-@app.route('/')
-def index():
-    date = request.args.get('date')
-    subreddit = request.args.get('subreddit')
-    page = int(request.args.get('page', 1))
-    ids = get_ids(date, subreddit)
-    things1 = [v for k, v in things.items() if k in ids] if date or subreddit else list(things.values())
-    n = len(ids or things1)
-    end = page * 250
-    start = end - 250
-    return render_template(
-        'index.html',
-        date = date,
-        subreddit = subreddit,
-        start = start,
-        page = page,
-        last_page = math.ceil(n / 250),
-        end = end if end < n else n,
-        n = n,
-        things = things1[start:end],
-        total = total,
-        dates = dates_cnt.most_common(),
-        subreddits = subreddits_cnt.most_common()
-    )
-
-@app.route('/cache')
-def cache():
-    for date, subreddit in [(d, s) for d in [None] + list(dates) for s in [None] + list(subreddits)]:
-        if subreddit == '':
-            continue
-
-        ids = get_ids(date, subreddit)
-        n = len(ids if date or subreddit else things)
-        if not date and n < 10:
-            continue
-
-        for page in range(1, math.ceil(n / 250) + 1):
-            res = requests.get('http://127.0.0.1:5000', params=dict(date=date, subreddit=subreddit, page=page))
-            with codecs.open(f'static/{date or ""}_{subreddit or ""}_{page}.html', 'w', 'utf8') as file:
-                file.write(res.text)
-
-    return 'done'
+@app.get('/subreddit', response_class=HTMLResponse)
+async def subreddit(r: Request):
+    return render('subreddit.html', r, xs=sbrs)

@@ -1,0 +1,57 @@
+<!doctype html>
+<head>
+  <title>hola</title>
+  <style>
+    body { background-color: #212121; color: #ddd; padding: 1em; }
+    a { color: #88f; text-decoration: none; }
+    a:hover { color: #88f; text-decoration: underline; }
+    a:visited { color: #88c; }
+    ul { line-height: 1.6em; list-style-type: none; }
+    ul#things li { margin-bottom: 2.6em; }
+    ul#nav li { display: inline; margin-right: 1em; }
+    p { line-height: 1.6em; margin-bottom: 0.8em; }
+    div#grid { display: grid; grid-template-columns: 800px 1fr; }
+    div.url { margin-bottom: 0.8em; }
+    div.utc a { color: #ddd; }
+    div.utc a:visited { color: #bbb; }
+    div.utc form { display: inline; }
+    div.utc button { background-color: #212121; border: none; color: #ddd; }
+  </style>
+</head>
+<body>
+  <ul id="nav">
+    <li><a href="/">unread</a> {{ n_unread }}</li>
+    <li><a href="/saved">saved</a> {{ n_saved }}</li>
+    <li><a href="/hidden">hidden</a> {{ n_hidden }}</li>
+    <li><a href="/all">all</a> {{ n }}</li>
+  </ul>
+
+  <div id="grid">
+    <ul id="things">
+      {% for x in things %}
+      <li>
+        <p>{{ x.title }}</p>
+        <p>{{ x.selftext }}</p>
+        <div class="url">
+          <a href="/{ x.dom.0 }">{ x.dom.0 }</a>/<a href="{ x.url }">{ x.dom.1 }</a>
+        </div>
+
+        <div class="utc">
+          { x.site } 
+          <a href="{ x.href }">{ x.utc }</a>
+          <form method="post" action="/things/{{ x.id }}">
+            <input name="site" value="{ x.site }" type="hidden" />
+            <button name="save" type="submit">save</button>
+            <button name="hide" type="submit">hide</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <ul>
+      {% for x in sites %}
+      <li><a href="?site={{ x.0 }}">{{ x.0 }}</a> {{ x.1 }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>

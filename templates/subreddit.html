@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>rx / cat</title>
+    <style>
+      body { background-color: #212121; color: #ddd; float: none; font-size: 14px; margin: 0 auto; max-width: 1080px; padding: 1em; }
+      a { color: #88f; text-decoration: none; }
+      a:hover { color: #88f; text-decoration: underline; }
+      a:visited { color: #88c; }
+      form { display: none; }
+      ul { line-height: 1.6em; list-style-type: none; }
+      ul#nav li { display: inline; margin-right: 1em; }
+      p { line-height: 1.8em; margin-bottom: 0.8em; }
+      div#grid { display: grid; grid-template-columns: 800px 1fr; }
+    </style>
+  </head>
+  <body>
+    <ul id="nav">
+      <li>{{ remaining }}</li>
+    </ul>
+    <div id="grid">
+      <ul>
+        {% for x in xs %}
+        <li>{{ x }}</li>
+        {% endfor %}
+      </ul>
+      <ul>
+        {% for x in sites %}
+        <li><a href="?site={{ x.0 }}">{{ x.0 }}</a> {{ x.1 }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </body>
+</html>
