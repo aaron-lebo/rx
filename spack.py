@@ -39,7 +39,7 @@ def main(file: str):
             utc1 = utc
             utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
             if utc1 and utc != utc1:
-                f = f'{pre}{utc}.spacy'
+                f = f'{pre}{utc1}.spacy'
                 try:
                     bin1 = DocBin(store_user_data=True).from_disk(f)
                     bin1.merge(bin)
