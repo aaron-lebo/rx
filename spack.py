@@ -16,15 +16,6 @@ def load(s: str):
     x = orjson.loads(s)
     return '\n'.join([x['title'], x['selftext']]), x
 
-def save(bin: DocBin, pre: str, utc: datetime.date):
-    f = f'{pre}{utc}.spacy'
-    try:
-        bin1 = DocBin(store_user_data=True).from_disk(f)
-        bin1.merge(bin)
-        bin1.to_disk(f)
-    except FileNotFoundError:
-        bin.to_disk(f)
-
 def main(file: str):
     file1 = file.split('/')[-1].lower()
     pre = file1[:3]
@@ -48,9 +39,15 @@ def main(file: str):
             utc1 = utc
             utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
             if utc1 and utc != utc1:
-                save(bin, pre, utc1)
+                f = f'{pre}{utc}.spacy'
+                try:
+                    bin1 = DocBin(store_user_data=True).from_disk(f)
+                    bin1.merge(bin)
+                    bin1.to_disk(f)
+                except FileNotFoundError:
+                    bin.to_disk(f)
 
-        save(bin, pre, utc)
+        bin.to_disk(f)
 
 if __name__ == '__main__':
     typer.run(main)
