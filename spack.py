@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 
 import orjson 
 import spacy
@@ -16,12 +17,16 @@ def load(s: str):
     return '\n'.join([x['title'], x['selftext']]), x
 
 def main(file: str):
-    f = open(file)
+    pre = file.split('/')[-1][:3].lower()
+    assert(pre in ('rc_', 'rs_'))
+
+    f = open(file) 
     n = sum(1 for x in f) 
     f.seek(0)
 
     xs = (load(x) for x in f)
-    p = nlp.pipe(xs, as_tuples=1, n_process=3)
+    n_proc = os.cpu_count()
+    p = nlp.pipe(xs, as_tuples=1, n_process=1 if n_proc == 1 else n_proc-1)
     bin = DocBin(store_user_data=True)
     utc = None
     for i, (d, x) in enumerate(tqdm(p, total=n)):
@@ -34,10 +39,10 @@ def main(file: str):
         utc1 = utc
         utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
         if utc1 and utc != utc1:
-            bin.to_disk(f'{utc}.spacy')
+            bin.to_disk(f'{pre}{utc}.spacy')
             bin = DocBin(store_user_data=True)
 
-    bin.to_disk(f'{utc}.spacy')
+    bin.to_disk(f'{pre}{utc}.spacy')
     f.close()
 
 if __name__ == '__main__':
