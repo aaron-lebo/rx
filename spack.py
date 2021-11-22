@@ -18,9 +18,12 @@ def load(s: str):
 
 def save(bin: DocBin, pre: str, utc: datetime.date):
     f = f'{pre}{utc}.spacy'
-    bin1 = DocBin(store_user_data=True).from_disk(f)
-    bin1.merge(bin)
-    bin1.to_disk(f)
+    try:
+        bin1 = DocBin(store_user_data=True).from_disk(f)
+        bin1.merge(bin)
+        bin1.to_disk(f)
+    except FileNotFoundError:
+        bin.to_disk(f)
 
 def main(file: str):
     file1 = file.split('/')[-1].lower()
@@ -45,7 +48,7 @@ def main(file: str):
             utc1 = utc
             utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
             if utc1 and utc != utc1:
-                save(bin, pre, utc)
+                save(bin, pre, utc1)
 
         save(bin, pre, utc)
 
