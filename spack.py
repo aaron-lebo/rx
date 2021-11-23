@@ -32,7 +32,7 @@ def main(file: str):
             for k in ks_int:
                 d.user_data[k] = int(x.get(k, 0))
 
-            if not i % 100000:
+            if i and not i % 100000:
                 f = f'{x["id"]}.spacy'    
                 if os.path.isfile(f):
                     raise FileExistsError
