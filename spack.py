@@ -25,7 +25,6 @@ def main(file: str):
         n_proc = os.cpu_count()
         n_proc = 1 if n_proc == 1 else n_proc-1
         p = nlp.pipe((load(x) for x in f), as_tuples=True, n_process=n_proc)
-        utc = None
         bin = DocBin(store_user_data=True)
         for i, (d, x) in enumerate(tqdm(p, total=n)):
             d.user_data = {k: x.get(k) for k in ks}
