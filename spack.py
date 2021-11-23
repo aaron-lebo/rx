@@ -42,7 +42,7 @@ def main(file: str):
             if utc1 and utc != utc1:
                 f = f'{pre}{utc1[0]}_{utc1[1]:02d}.spacy'
                 if os.path.isfile(f):
-                    eaise FileExistsError
+                    raise FileExistsError
 
                 bin.to_disk(f)
 
