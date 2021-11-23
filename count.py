@@ -13,6 +13,7 @@ nlp = spacy.load('en_core_web_lg')
 def main(files: List[str]):
     n = 0 
     for i, f in enumerate(files):
+        print(f)
         bin = DocBin().from_disk(f)
         print(f'{i:03} {f} {len(bin)}')
         n += len(bin)
