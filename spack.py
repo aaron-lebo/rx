@@ -40,9 +40,6 @@ def main(file: str):
             utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
             if utc1 and utc != utc1:
                 f = f'{pre}{utc1}.spacy'
-                if os.path.isfile(f):
-                    raise FileExistsError
-
                 bin.to_disk(f)
 
         bin.to_disk(f)
