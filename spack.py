@@ -33,10 +33,11 @@ def main(file: str):
             for k in ks_int:
                 d.user_data[k] = int(x.get(k, 0))
 
-            utc1 = utc
-            utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
-            if utc1 and utc != utc1:
-                f = f'{pre}{utc1}.spacy'
+            if not i % 100000:
+                f = f'{x["id"]}.spacy'    
+                if os.path.isfile(f):
+                    raise FileExistsError
+
                 bin.to_disk(f)
                 bin = DocBin(store_user_data=True)
 
