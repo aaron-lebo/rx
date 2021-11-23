@@ -34,7 +34,7 @@ def main(file: str):
                 d.user_data[k] = int(x.get(k, 0))
 
             if i and not i % 100000:
-                f = f'{out/{file1}/x["id"]}.spacy'    
+                f = f'out/{file1}/{x["id"]}.spacy'    
                 if os.path.isfile(f):
                     raise FileExistsError
 
