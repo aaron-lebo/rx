@@ -38,14 +38,13 @@ def main(file: str):
 
             utc1 = utc
             utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
+            utc = utc.date(), utc.hour
             if utc1 and utc != utc1:
-                f = f'{pre}{utc1}.spacy'
-                try:
-                    bin1 = DocBin(store_user_data=True).from_disk(f)
-                    bin1.merge(bin)
-                    bin1.to_disk(f)
-                except FileNotFoundError:
-                    bin.to_disk(f)
+                f = f'{pre}{utc1[0]}_{utc1[1]:02d}.spacy'
+                if os.path.isfile(f):
+                    eaise FileExistsError
+
+                bin.to_disk(f)
 
         bin.to_disk(f)
 
