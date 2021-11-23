@@ -37,10 +37,9 @@ def main(file: str):
             bin.add(d)
 
             utc1 = utc
-            utc = datetime.fromtimestamp(d.user_data['created_utc'])
-            utc = utc.date(), utc.hour
+            utc = datetime.fromtimestamp(d.user_data['created_utc']).date()
             if utc1 and utc != utc1:
-                f = f'{pre}{utc1[0]}_{utc1[1]:02d}.spacy'
+                f = f'{pre}{utc1}.spacy'
                 if os.path.isfile(f):
                     raise FileExistsError
 
