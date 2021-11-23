@@ -17,8 +17,7 @@ def load(s: str):
     return '\n'.join([x['title'], x['selftext']]), x
 
 def main(file: str):
-    file1 = file.split('/')[-1].lower()
-    pre = file1[:3]
+    pre = file.split('/')[-1].lower()[:3]
     assert(pre in ('rc_', 'rs_'))
     with open(file) as f:
         n = sum(1 for x in f) 
