@@ -1,10 +1,5 @@
-import os
-
-import pandas as pd
 import spacy
-from spacy.matcher import PhraseMatcher
 from spacy.tokens import DocBin
-from tqdm.auto import tqdm
 import typer
 from typing import List
 
