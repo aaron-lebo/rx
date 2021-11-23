@@ -16,8 +16,10 @@ def load(s: str):
     return '\n'.join([x['title'], x['selftext']]), x
 
 def main(file: str):
-    pre = file.split('/')[-1].lower()[:3]
+    file1 = file.split('/')[-1].lower()
+    pre = file1[:3]
     assert(pre in ('rc_', 'rs_'))
+    os.makedirs(f'out/{file1}')
     with open(file) as f:
         n = sum(1 for x in f) 
         f.seek(0)
@@ -32,7 +34,7 @@ def main(file: str):
                 d.user_data[k] = int(x.get(k, 0))
 
             if i and not i % 100000:
-                f = f'{x["id"]}.spacy'    
+                f = f'{out/{file1}/x["id"]}.spacy'    
                 if os.path.isfile(f):
                     raise FileExistsError
 
