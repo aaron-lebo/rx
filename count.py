@@ -12,7 +12,7 @@ def main(files: List[str]):
         print(f'{i:03} {f} {len(bin)}')
         n += len(bin)
 
-    print(i, n) 
+    print(f'{i+1:03} {n}')
 
 if __name__ == '__main__':
     typer.run(main)
