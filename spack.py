@@ -19,7 +19,7 @@ def main(file: str):
     file1 = file.split('/')[-1].lower()
     pre = file1[:3]
     assert(pre in ('rc_', 'rs_'))
-    os.makedirs(f'out/{file1}')
+    os.makedirs(f'out/{file1}', exist_ok=True)
     with open(file) as f:
         n = sum(1 for x in f) 
         f.seek(0)
