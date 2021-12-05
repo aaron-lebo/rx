@@ -15,14 +15,18 @@ def load(s: str):
     x = orjson.loads(s)
     return '\n'.join([x['title'], x['selftext']]), x
 
-def main(file: str):
+def main(file: str, start: int = typer.Option(0)):
     file1 = file.split('/')[-1].lower()
     pre = file1[:3]
     assert(pre in ('rc_', 'rs_'))
     os.makedirs(f'out/{file1}', exist_ok=True)
     with open(file) as f:
-        n = sum(1 for x in f) 
+        n = sum(1 for x in f)-start 
         f.seek(0)
+        if start:
+            for i, x in enumerate(f):
+                if i == start-1: 
+                    break
 
         n_proc = os.cpu_count()
         n_proc = 1 if n_proc == 1 else n_proc-1
