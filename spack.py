@@ -52,6 +52,7 @@ def main(file: str):
             raise FileExistsError
 
         bin.to_disk(f)
+        assert(fs[file1] == i+1)
 
 if __name__ == '__main__':
     typer.run(main)
