@@ -31,7 +31,7 @@ def main(file: str, start: int = typer.Option(0), procs: int = typer.Option(os.c
         n = sum(1 for x in f)
         f.seek(0)
         assert(fs[file1] == n)
-        os.makedirs(f'out1/{file1}', exist_ok=True)
+        os.makedirs(f'out/{file1}', exist_ok=True)
         if start:
             n -= start
             for i, _ in enumerate(f):
