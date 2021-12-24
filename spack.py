@@ -58,7 +58,7 @@ def main(file: str, start: int = typer.Option(0), procs: int = typer.Option(os.c
             raise FileExistsError
 
         bin.to_disk(f)
-        assert(fs[file1] == i+1)
+        assert(n == i+1)
 
 if __name__ == '__main__':
     typer.run(main)
