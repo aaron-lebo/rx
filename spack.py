@@ -1,10 +1,11 @@
 import os
+import json 
 
-import orjson 
 import spacy
 from spacy.tokens import DocBin
 from tqdm.auto import tqdm
 import typer
+from typer import Option
 
 nlp = spacy.load('en_core_web_lg')
 
@@ -13,16 +14,16 @@ ks_com = 'id author subreddit url'.split()
 ks_int = 'created_utc edited retrieved_on'.split()
 
 def load(s: str, pre: str):
-    x = orjson.loads(s)
+    x = json.loads(s)
     if pre == 'rs_':
         return '\n'.join([x['title'], x['selftext']]), x
     return x['body'], x
 
-with open('stats.txt') as f:
-    fs = (x.split() for x in f)
-    fs = {k.split('.')[0].lower(): int(v) for k, v in fs}
+with open('stats.csv') as f:
+    fs = (x.split(',') for x in f)
+    fs = {k.lower(): int(v) for k, v in fs}
 
-def main(file: str, start: int = typer.Option(0), procs: int = typer.Option(os.cpu_count())):
+def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count())):
     file1 = file.split('/')[-1].lower()
     pre = file1[:3]
     ks = ks_sub if pre == 'rs_' else ks_com
@@ -30,7 +31,7 @@ def main(file: str, start: int = typer.Option(0), procs: int = typer.Option(os.c
     with open(file) as f:
         n = sum(1 for x in f)
         f.seek(0)
-        assert(fs[file1] == n)
+        assert(n == fs[file1])
         os.makedirs(f'out/{file1}', exist_ok=True)
         if start:
             n -= start
