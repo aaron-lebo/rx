@@ -62,7 +62,11 @@ def urls(dir: str):
 
         df = data(dat, 'id http url')
         df.url = df.url.apply(clean)
+        df = df[df.url.str.contains('[\w_-]+\.\w+.*$')]
+        df.url = df.url.str.split('"', 1).str[0]
+        df.url = df.url.str.extract('([\w_-]+\..+)$')
         df = df[~df.url.isna()]
+        df = df[df.url.str.contains('^[\w\-\._~:/\?#\[\]@!$&\'\(\)\*\+,;=%{}|\^`]+$')]
         save(df, f)
 
 @app.command()
