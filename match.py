@@ -28,8 +28,8 @@ def clean(txt: str):
             txt = txt[:i]
     return txt[:stk[0][0]] if stk else txt
 
-def save(df, file):
-    f = f'out/match/{os.path.split(file)[1].replace(".spacy", ".csv")}'
+def save(df, dir):
+    f = f'out/match/{dir}.csv'
     if os.path.isfile(f):
         raise FileExistsError
     df.to_csv(f)
@@ -39,12 +39,13 @@ def urls(dir: str):
     fs = glob.glob(f'{dir}/*.spacy')
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
-    os.makedirs('out/match', exist_ok=True)
+    os.makedirs('out/match/urls', exist_ok=True)
+
+    dat = [] 
     for i, f in enumerate(fs):
         bin = DocBin().from_disk(f)
         bar = tqdm(bin.get_docs(nlp.vocab), total=len(bin))
-        bar.set_description(f'{i}/{len(fs)} {f}')
-        dat = [] 
+        bar.set_description(f'{i+1}/{len(fs)} {f}')
         for d in bar:
             for _, y, z in match(d):
                 txt = d[y:].text.split()[0]
@@ -60,14 +61,14 @@ def urls(dir: str):
                 txt = txt.replace('\\', '').strip()
                 dat.append([d.user_data['id'], pre, txt])
 
-        df = data(dat, 'id http url')
-        df.url = df.url.apply(clean)
-        df = df[df.url.str.contains('[\w_-]+\.\w+.*$')]
-        df.url = df.url.str.split('"', 1).str[0]
-        df.url = df.url.str.extract('([\w_-]+\..+)$')
-        df = df[~df.url.isna()]
-        df = df[df.url.str.contains('^[\w\-\._~:/\?#\[\]@!$&\'\(\)\*\+,;=%{}|\^`]+$')]
-        save(df, f)
+    df = data(dat, 'id http url')
+    df.url = df.url.apply(clean)
+    df = df[df.url.str.contains('[\w_-]+\.\w+.*$')]
+    df.url = df.url.str.split('"', 1).str[0]
+    df.url = df.url.str.extract('([\w_-]+\..+)$')
+    df = df[~df.url.isna()]
+    df = df[df.url.str.contains("^[\w\-\._~:/\?#\[\]@!$&'\(\)\*\+,;=%{}|\^`]+$")]
+    save(df, f'urls/{dir}')
 
 @app.command()
 def main(tag: str, terms_file: str, files: str):
