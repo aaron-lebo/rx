@@ -52,9 +52,10 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
 
             f = f'out/{file}/{x["id"]}.spacy'    
             if i and not i % 20000 or n == i+1:
-                if os.path.isfile(f):
-                    raise FileExistsError
                 if full:
+                    if os.path.isfile(f):
+                        raise FileExistsError
+
                     bin.to_disk(f)
                     bin = DocBin(store_user_data=True)
 
