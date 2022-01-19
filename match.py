@@ -64,7 +64,7 @@ def urls(dir: str):
         df = data(dat, 'id http url')
         df.url = df.url.apply(clean)
         df.url = df.url.str.split('"', 1).str[0]
-        df.url = df.url.str.extract('([\w_-]+\..+)$')
+        df.url = df.url.str.extract('([\w_-]+\.\w+.*)$')
         df = df[df.url.notna()]
         df = df[df.url.str.contains("^[\w\-\._~:/\?#\[\]@!$&'\(\)\*\+,;=%{}|\^`]+$")]
         f = f'out/match/urls/{dir}/{f.split("/")[-1].replace(".spacy", ".csv")}')
