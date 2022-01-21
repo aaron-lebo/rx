@@ -40,13 +40,13 @@ stats = dict(fs.values)
 @app.command()
 def urls(dir: str):
     fs = glob.glob(f'{dir}/*.spacy')
-    dir = dir.split('/')[-1]
+    dir = [x for x in dir.split('/')[-1] if x]
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
-    os.makedirs(f'out/match/urls/{dir}', exist_ok=True)
+    os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
     for i, f in tqdm(enumerate(fs), total=len(fs)):
         dat, bin = [], DocBin().from_disk(f)
-        for j, d in enumerate(bin.get_docs(nlp.vocab), total=len(bin)):
+        for d in bin.get_docs(nlp.vocab):
             for _, y, z in match(d):
                 txt = d[y:].text.split()[0]
                 i = txt.find('http')
@@ -67,11 +67,11 @@ def urls(dir: str):
         df.url = df.url.str.extract('([\w_-]+\.\w+.*)$')
         df = df[df.url.notna()]
         df = df[df.url.str.contains("^[\w\-\._~:/\?#\[\]@!$&'\(\)\*\+,;=%{}|\^`]+$")]
-        f = f'out/match/urls/{dir}/{f.split("/")[-1].replace(".spacy", ".csv")}')
+        f = f'out/{dir}/match/urls/{f.split("/")[-1].replace(".spacy", ".csv")}')
         save(f, df, dat)
         dat = []
 
-    asset(j+1 == files[dir])
+    assert(j+1 == files[dir])
 
 @app.command()
 def main(tag: str, terms_file: str, files: str):
