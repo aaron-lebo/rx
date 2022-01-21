@@ -33,7 +33,7 @@ def main(dir: str):
     wiki = df.dom.str.match('^wikipedia\.(com|org)$')
     df.loc[wiki, 'wiki'] = df[wiki].url.map(get_wiki)
 
-    df['dom url id user subreddit wiki'.split()].to_csv('doms.csv')
+    df['dom url id user subreddit wiki'.split()].to_csv('doms.csv', index=False)
     df.dom.value_counts().to_csv('doms1.csv')
     df.wiki.value_counts().to_csv('wiki.csv')
 
