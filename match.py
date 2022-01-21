@@ -40,7 +40,7 @@ stats = dict(fs.values)
 @app.command()
 def urls(dir: str):
     fs = glob.glob(f'{dir}/*.spacy')
-    dir = [x for x in dir.split('/')[-1] if x]
+    dir = [x for x in dir.split('/') if x][-1]
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
     os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
