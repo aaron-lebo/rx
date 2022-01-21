@@ -68,7 +68,7 @@ def urls(dir: str):
         df = df[df.url.notna()]
         df = df[df.url.str.contains("^[\w\-\._~:/\?#\[\]@!$&'\(\)\*\+,;=%{}|\^`]+$")]
         f = f'out/{dir}/match/urls/{f.split("/")[-1].replace(".spacy", ".csv")}'
-        save(f, df, dat)
+        save(f, df)
         dat = []
 
     assert(j+1 == files[dir])
