@@ -44,8 +44,10 @@ def urls(dir: str):
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
     os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
+    tot = 1
     for i, f in tqdm(enumerate(fs), total=len(fs)):
         dat, bin = [], DocBin().from_disk(f)
+        tot += len(bin)
         for d in bin.get_docs(nlp.vocab):
             for _, y, z in match(d):
                 txt = d[y:].text.split()[0]
@@ -71,7 +73,7 @@ def urls(dir: str):
         save(f, df)
         dat = []
 
-    assert(j+1 == files[dir])
+    assert(tot == stats[dir])
 
 @app.command()
 def main(tag: str, terms_file: str, files: str):
