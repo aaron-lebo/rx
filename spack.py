@@ -45,7 +45,7 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
         p = nlp.pipe(p, as_tuples=True, n_process=procs) if full else p
         dat, bin = [], DocBin(store_user_data=True)
         for i, (d, x) in enumerate(tqdm(p, total=n, smoothing=0.1)):
-            dat.append([x[k] for k in ks])
+            dat.append([x.get(k) for k in ks])
             if full:
                 d.user_data['id'] = x['id']
                 bin.add(d)

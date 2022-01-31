@@ -39,16 +39,22 @@ stats = dict(fs.values)
 
 @app.command()
 def urls(dir: str):
+    rs_ = dir.startswith('rs_')
     fs = glob.glob(f'{dir}/*.spacy')
     dir = [x for x in dir.split('/') if x][-1]
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
     os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
-    tot = 1
+    tot = 0 
     for i, f in tqdm(enumerate(fs), total=len(fs)):
         dat, bin = [], DocBin().from_disk(f)
         tot += len(bin)
         for d in bin.get_docs(nlp.vocab):
+            data = d.user_data
+            if rs_:
+                pre = data['url'].split('://')
+                dat.append([data['id'], pre[0][-1], pre[-1]])
+
             for _, y, z in match(d):
                 txt = d[y:].text.split()[0]
                 i = txt.find('http')
@@ -61,7 +67,7 @@ def urls(dir: str):
                     pre, txt = 's', txt[4:]
 
                 txt = txt.replace('\\', '').strip()
-                dat.append([d.user_data['id'], pre, txt])
+                dat.append([data['id'], pre, txt])
 
         df = data(dat, 'id http url')
         df.url = df.url.apply(clean)
@@ -71,7 +77,6 @@ def urls(dir: str):
         df = df[df.url.str.contains("^[\w\-\._~:/\?#\[\]@!$&'\(\)\*\+,;=%{}|\^`]+$")]
         f = f'out/{dir}/match/urls/{f.split("/")[-1].replace(".spacy", ".csv")}'
         save(f, df)
-        dat = []
 
     assert(tot == stats[dir])
 
