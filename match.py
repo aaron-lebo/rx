@@ -50,10 +50,10 @@ def urls(dir: str):
         dat, bin = [], DocBin().from_disk(f)
         tot += len(bin)
         for d in bin.get_docs(nlp.vocab):
-            data = d.user_data
+            ud = d.user_data
             if rs_:
-                pre = data['url'].split('://')
-                dat.append([data['id'], pre[0][-1], pre[-1]])
+                pre = ud['url'].split('://')
+                dat.append([ud['id'], pre[0][-1], pre[-1]])
 
             for _, y, z in match(d):
                 txt = d[y:].text.split()[0]
@@ -67,7 +67,7 @@ def urls(dir: str):
                     pre, txt = 's', txt[4:]
 
                 txt = txt.replace('\\', '').strip()
-                dat.append([data['id'], pre, txt])
+                dat.append([ud['id'], pre, txt])
 
         df = data(dat, 'id http url')
         df.url = df.url.apply(clean)
