@@ -1,5 +1,5 @@
-import os
 import json 
+import os
 
 import pandas as pd
 import spacy
@@ -11,8 +11,8 @@ from typer import Option
 nlp = spacy.load('en_core_web_lg')
 
 ks_ = 'id created_utc edited retrieved_on author subreddit'.split()
-ks_sub = ['url']
 ks_com = 'link_id parent_id'.split()
+ks_sub = ['url']
 
 fs = pd.read_csv('stats.csv')
 fs.file = fs.file.str.lower()
@@ -28,7 +28,7 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
     with open(file) as f:
         file = file.split('/')[-1].lower()
         pre = file[:3]
-        ks = ks_+(ks_sub if pre == 'rs_' else ks_com)
+        ks = ks_+(ks_com if pre == 'rc_' else ks_sub)
         assert(pre in ('rc_', 'rs_'))
 
         n = sum(1 for x in f)
@@ -50,17 +50,19 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
                 d.user_data['id'] = x['id']
                 bin.add(d)
 
-            f = f'out/{file}/{x["id"]}.spacy'    
             if i and not i % 20000 or n == i+1:
+                f = f'out/{file}/{x["id"]}.'    
+                if os.path.isfile(f+'csv'):
+                    raise FileExistsError
                 if full:
-                    if os.path.isfile(f):
+                    if os.path.isfile(f+'spacy'):
                         raise FileExistsError
 
-                    bin.to_disk(f)
+                    bin.to_disk(f+'spacy')
                     bin = DocBin(store_user_data=True)
 
                 df = pd.DataFrame(dat, columns=ks).set_index('id')
-                df.to_csv(f.replace('.spacy', '.csv'))
+                df.to_csv(f+'csv')
                 dat = []
 
         assert(n == i+1)

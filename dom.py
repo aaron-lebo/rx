@@ -1,4 +1,5 @@
 import glob
+import os
 
 import pandas as pd
 from publicsuffix2 import get_public_suffix
@@ -6,6 +7,9 @@ from tqdm.auto import tqdm
 import typer
 
 app = typer.Typer()
+
+def split(x):
+    return os.path.normpath(x).split('/')[-1]
 
 def get_wiki(x):
     if x.find('?curid=') > -1:
@@ -18,24 +22,36 @@ def get_wiki(x):
 
 @app.command()
 def main(dir: str):
-    dfs, fs = [], glob.glob(f'{dir}/*.csv')
-    for f in tqdm(fs, total=len(fs)):
-        f1 = f'{dir}/match/urls/{f.split("/")[-1]}'
-        df = pd.merge(pd.read_csv(f), pd.read_csv(f1), how='right', on='id')
-        dfs.append(df)
-    
-    df = pd.concat(dfs)
-    df['dom'] = df.url.str.extract('^([\w_-]+(\.[\w_-]+)+)')[0].str.lower()
-    df = df[df.dom.notna()]
-    df.dom = df.dom.map(get_public_suffix)
-    df = df[df.dom.str.match('^.+\.[a-z]+$')]
+    dirs = sorted(f.path for f in os.scandir(dir) if f.is_dir())
+    dirs1 = [] 
+    for dir in dirs:
+        f = split(dir)
+        if f[:3] in ('rc_', 'rs_') and not os.path.exists(f'out/dom/{f}.csv'):
+            dirs1.append(dir) 
 
-    wiki = df.dom.str.match('^wikipedia\.(com|org)$')
-    df.loc[wiki, 'wiki'] = df[wiki].url.map(get_wiki)
+    os.makedirs(f'out/dom', exist_ok=True)
+    for i, dir in enumerate(dirs1):
+        f = split(dir)
+        x = sorted(glob.glob(f'{dir}/*.csv'))
+        y = sorted(glob.glob(f'{dir}/match/urls/*.csv'))
+        t = tqdm(zip(x, y), total=len(x))
+        dfs = []
+        for x, y in t:
+            t.set_description(f'{i+1:2}/{len(dirs1):2} {f}')
+            df = pd.merge(pd.read_csv(x), pd.read_csv(y), how='right', on='id')
+            dfs.append(df)
 
-    df['dom url id user subreddit wiki'.split()].to_csv('doms.csv', index=False)
-    df.dom.value_counts().to_csv('doms1.csv')
-    df.wiki.value_counts().to_csv('wiki.csv')
+        df = pd.concat(dfs)
+        df['url'] = df['url_y'] if 'url_y' in df.columns else df['url']
+        df['dom'] = df.url.str.extract('^([\w_-]+(\.[\w_-]+)+)')[0].str.lower()
+        df = df[df.dom.notna()]
+        df.dom = df.dom.map(get_public_suffix)
+        df = df[df.dom.str.match('^.+\.[a-z]+$')]
+
+        wiki = df.dom.str.match('^wikipedia\.(com|org)$')
+        df.loc[wiki, 'wiki'] = df[wiki].url.map(get_wiki)
+
+        df['dom url id author subreddit wiki'.split()].to_csv(f'out/dom/{f}.csv', index=False)
 
 if __name__ == '__main__':
     app()
