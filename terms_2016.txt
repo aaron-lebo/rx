@@ -1,0 +1,21 @@
+2016,democratic,republican; donald,hillary
+2016,donald,hillary; debate,debates,debating,debated
+2016,donald,hillary; campaign,campaigns,campaigning,campaigned
+2016,donald,hillary; candidate,candidates,candidacy
+2016,donald,hillary; elect,elects,electing,elected,election,elections
+2016,democratic,republican,donald,hillary; nominee,nominees,nomination,nominations,nominating,nominated
+2016,democratic,republican,donald,hillary; president,presidents,presidential
+2016,donald,hillary; primary,primaries
+2016,donald,hillary; united; states
+2016,donald,hillary; usa
+2016,donald,hillary; vote,votes,voting,voted,voter,voters
+campaign,campaigns,campaigning,campaigned; president,presidents,presidential
+candidate,candidates,candidacy; president,presidents,presidential
+elect,elects,electing,elected,election,elections; president,presidents,presidential
+elect,elects,electing,elected,election,elections; united; states
+elect,elects,electing,elected,election,elections; usa
+president,presidents,presidential; debate,debates,debating,debated
+president,presidents,presidential; primary,primaries
+president,presidents,presidential; vote,votes,voting,voted,voter,voters
+caucus,caucuses,caucusing,caucused
+clinton,maga,rodham,trump

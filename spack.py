@@ -1,3 +1,4 @@
+import glob
 import json 
 import os
 
@@ -6,35 +7,56 @@ import spacy
 from spacy.tokens import DocBin
 from tqdm.auto import tqdm
 import typer
-from typer import Option
 
+app = typer.Typer()
+Op = typer.Option
 nlp = spacy.load('en_core_web_lg')
+
+stats = pd.read_csv('stats.csv')
+stats.file = stats.file.str.lower()
+stats = dict(stats.values)
+
+@app.command()
+def count(dir: str, check=True):
+    fs = glob.glob(f'{dir}/*.spacy')
+    n, ids = 0, set()
+    for f in tqdm(fs, total=len(fs)):
+        bin = DocBin().from_disk(f)
+        n += len(bin) 
+        if check:
+            df = pd.read_csv(f.replace('.spacy', '.csv'))
+            ids.update(df.id)
+
+    print(n)
+    if check:
+        file = os.path.normpath(dir).split('/')[-1]
+        assert(n == len(ids) == stats[file])
+    return n
 
 ks_ = 'id created_utc edited retrieved_on author subreddit'.split()
 ks_com = 'link_id parent_id'.split()
 ks_sub = ['url']
 
-fs = pd.read_csv('stats.csv')
-fs.file = fs.file.str.lower()
-fs = dict(fs.values)
-
 def load(s: str, pre: str):
     x = json.loads(s)
-    if pre == 'rs_':
-        return '\n'.join([x['title'], x['selftext']]), x
-    return x['body'], x
+    if pre == 'rc_':
+        return x['body'], x
+    return '\n'.join([x['title'], x['selftext']]), x
 
-def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()), full: bool = Option(True)):
+@app.command()
+def main(file: str, resume: bool = Op(False), start: int = Op(0), procs: int = Op(os.cpu_count()-1), full: bool = Op(True)):
     with open(file) as f:
-        file = file.split('/')[-1].lower()
+        file = os.path.normpath(file).split('/')[-1].lower()
         pre = file[:3]
         ks = ks_+(ks_com if pre == 'rc_' else ks_sub)
         assert(pre in ('rc_', 'rs_'))
 
         n = sum(1 for x in f)
-        assert(n == fs[file])
+        assert(n == stats[file])
         f.seek(0)
         os.makedirs(f'out/{file}', exist_ok=True)
+        if resume and not start:
+            start = count(f'out/{file}', check=False)
         if start:
             n -= start
             for i, _ in enumerate(f):
@@ -44,7 +66,7 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
         p = (load(x, pre) for x in f)
         p = nlp.pipe(p, as_tuples=True, n_process=procs) if full else p
         dat, bin = [], DocBin(store_user_data=True)
-        for i, (d, x) in enumerate(tqdm(p, total=n, smoothing=0.1)):
+        for i, (d, x) in enumerate(tqdm(p, total=n)):
             dat.append([x.get(k) for k in ks])
             if full:
                 d.user_data['id'] = x['id']
@@ -64,8 +86,8 @@ def main(file: str, start: int = Option(0), procs: int = Option(os.cpu_count()),
                 df = pd.DataFrame(dat, columns=ks).set_index('id')
                 df.to_csv(f+'csv')
                 dat = []
-
+                
         assert(n == i+1)
 
 if __name__ == '__main__':
-    typer.run(main)
+    app()

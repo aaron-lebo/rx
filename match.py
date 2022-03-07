@@ -33,9 +33,9 @@ def save(f, df):
         raise FileExistsError
     df.to_csv(f)
 
-fs = pd.read_csv('stats.csv')
-fs.file = fs.file.str.lower()
-stats = dict(fs.values)
+stats = pd.read_csv('stats.csv')
+stats.file = stats.file.str.lower()
+stats = dict(stats.values)
 
 @app.command()
 def urls(dir: str):
@@ -81,45 +81,44 @@ def urls(dir: str):
     assert(tot == stats[dir])
 
 @app.command()
-def main(tag: str, terms_file: str, files: str):
-    files = glob.glob(files)
-    terms, combos, raw = set(), [], []
-    with open(terms_file) as f:
+def terms(dir: str, tag: str, terms_f):
+    trms, combos, raw = set(), [], []
+    with open(terms_f) as f:
         for x in f:
             ands = []
             for and_ in x.split(';'):
                 ands.append({x.strip() for x in and_.split(',')})
-                terms.update(ands[-1])
+                trms.update(ands[-1])
 
             combos.append(ands)
             raw.append(x.strip())
 
-    m = matcher = matcher.PhraseMatcher(nlp.vocab, attr='LOWER')
-    m.add(tag, [nlp.make_doc(x) for x in terms])
+    fs = glob.glob(f'{dir}/*.spacy')
+    m = match = matcher.PhraseMatcher(nlp.vocab, attr='LOWER')
+    m.add(tag, [nlp.make_doc(x) for x in trms])
     os.makedirs('out/match', exist_ok=True)
-    for i, f in enumerate(files):
+    for i, f in enumerate(fs):
         dat, bin = [], DocBin().from_disk(f)
         bar = tqdm(bin.get_docs(nlp.vocab), total=len(bin))
-        bar.set_description(f'{i}/{len(files)} {f}')
+        bar.set_description(f'{i}/{len(fs)} {f}')
         for d in bar:
-            ms = matcher(d)
+            ms = match(d)
             if not ms: 
                 continue
 
             ms = {d[bg:nd].text.lower() for _, bg, nd in ms}
-            res = [d.user_data['id'], ','.join(ms), '']
+            row = [d.user_data['id'], ','.join(ms), '']
             for j, x in enumerate(combos):
                 ok = True
                 for y in x:
                     if not ms & y: 
                         ok = False
                         break
-
                 if ok:
-                    res[2] = raw[j]
+                    row[2] = raw[j]
                     break
 
-            dat.append(res)
+            dat.append(row)
 
     df = data(dat, 'id matches combos')
 
