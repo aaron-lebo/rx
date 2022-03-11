@@ -27,9 +27,9 @@ def count(dir: str, check=True):
             df = pd.read_csv(f.replace('.spacy', '.csv'))
             ids.update(df.id)
 
-    print(n)
     if check:
         file = os.path.normpath(dir).split('/')[-1]
+        print(n, len(ids), stats[file])
         assert(n == len(ids) == stats[file])
     return n
 
