@@ -28,7 +28,7 @@ def clean(txt: str):
             txt = txt[:i]
     return txt[:stk[0][0]] if stk else txt
 
-def save(f, df):
+def save(df, f):
     if os.path.isfile(f):
         raise FileExistsError
     df.to_csv(f)
@@ -44,6 +44,7 @@ def urls(dir: str):
     dir = [x for x in dir.split('/') if x][-1]
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
+
     os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
     tot = 0 
     for i, f in tqdm(enumerate(fs), total=len(fs)):
@@ -81,7 +82,7 @@ def urls(dir: str):
     assert(tot == stats[dir])
 
 @app.command()
-def terms(dir: str, tag: str, terms_f):
+def terms(dir: str, tag: str, terms_f: str):
     trms, combos, raw = set(), [], []
     with open(terms_f) as f:
         for x in f:
@@ -93,21 +94,20 @@ def terms(dir: str, tag: str, terms_f):
             combos.append(ands)
             raw.append(x.strip())
 
-    fs = glob.glob(f'{dir}/*.spacy')
     m = match = matcher.PhraseMatcher(nlp.vocab, attr='LOWER')
     m.add(tag, [nlp.make_doc(x) for x in trms])
-    os.makedirs('out/match', exist_ok=True)
-    for i, f in enumerate(fs):
-        dat, bin = [], DocBin().from_disk(f)
-        bar = tqdm(bin.get_docs(nlp.vocab), total=len(bin))
-        bar.set_description(f'{i}/{len(fs)} {f}')
-        for d in bar:
+
+    ids, dat, fs = set(), [], glob.glob(f'{dir}/*.spacy')
+    for f in tqdm(fs, total=len(fs)):
+        bin = DocBin().from_disk(f)
+        for d in bin.get_docs(nlp.vocab):
+            id = d.user_data['id']
+            ids.add(id)
             ms = match(d)
             if not ms: 
                 continue
 
             ms = {d[bg:nd].text.lower() for _, bg, nd in ms}
-            row = [d.user_data['id'], ','.join(ms), '']
             for j, x in enumerate(combos):
                 ok = True
                 for y in x:
@@ -115,12 +115,15 @@ def terms(dir: str, tag: str, terms_f):
                         ok = False
                         break
                 if ok:
-                    row[2] = raw[j]
+                    dat.append([id, ','.join(ms), raw[j]])
                     break
 
-            dat.append(row)
+    dir = os.path.normpath(dir).split('/')[-1]
+    assert(len(ids) == stats[dir])
 
     df = data(dat, 'id matches combos')
+    os.makedirs('out/match/terms', exist_ok=True)
+    save(df, f'out/match/terms/{dir}.csv')
 
 if __name__ == '__main__':
     app()
