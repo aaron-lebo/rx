@@ -44,7 +44,7 @@ def load(s: str, pre: str):
     return '\n'.join([x['title'], x['selftext']]), x
 
 @app.command()
-def main(file: str, resume: bool = Op(False), start: int = Op(0), procs: int = Op(os.cpu_count()-1), full: bool = Op(True)):
+def main(file: str, resume: bool = Op(False), start: int = Op(0), full: bool = Op(True)):
     with open(file) as f:
         file = os.path.normpath(file).split('/')[-1].lower()
         pre = file[:3]
@@ -64,7 +64,7 @@ def main(file: str, resume: bool = Op(False), start: int = Op(0), procs: int = O
                     break
 
         p = (load(x, pre) for x in f)
-        p = nlp.pipe(p, as_tuples=True, n_process=procs) if full else p
+        p = nlp.pipe(p, as_tuples=True) if full else p
         dat, bin = [], DocBin(store_user_data=True)
         for i, (d, x) in enumerate(tqdm(p, total=n)):
             dat.append([x.get(k) for k in ks])
