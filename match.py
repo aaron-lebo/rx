@@ -1,3 +1,4 @@
+import csv
 import glob
 import os
 
@@ -39,17 +40,16 @@ stats = dict(stats.values)
 
 @app.command()
 def urls(dir: str):
-    rs_ = dir.startswith('rs_')
-    fs = glob.glob(f'{dir}/*.spacy')
     dir = [x for x in dir.split('/') if x][-1]
+    rs_ = dir.startswith('rs_')
     m = match = matcher.Matcher(nlp.vocab)
     m.add('url',  [[{'LIKE_URL': True}], [{'LOWER': {'REGEX': r'\)\[http(.*)'}}]])
-
     os.makedirs(f'out/{dir}/match/urls', exist_ok=True)
-    tot = 0 
+
+    n, fs = 0, glob.glob(f'{dir}/*.spacy')
     for i, f in tqdm(enumerate(fs), total=len(fs)):
         dat, bin = [], DocBin().from_disk(f)
-        tot += len(bin)
+        n += len(bin)
         for d in bin.get_docs(nlp.vocab):
             ud = d.user_data
             if rs_:
@@ -79,7 +79,7 @@ def urls(dir: str):
         f = f'out/{dir}/match/urls/{f.split("/")[-1].replace(".spacy", ".csv")}'
         save(f, df)
 
-    assert(tot == stats[dir])
+    assert(n == stats[dir])
 
 @app.command()
 def terms(dir: str, tag: str, terms_f: str):
@@ -97,7 +97,15 @@ def terms(dir: str, tag: str, terms_f: str):
     m = match = matcher.PhraseMatcher(nlp.vocab, attr='LOWER')
     m.add(tag, [nlp.make_doc(x) for x in trms])
 
-    ids, dat, fs = set(), [], glob.glob(f'{dir}/*.spacy')
+    fs = glob.glob(f'{dir}/*.spacy')
+    dir = os.path.normpath(dir).split('/')[-1]
+    h = 'id matches combos'.split()
+    os.makedirs('out/match/terms', exist_ok=True)
+    with open(f'out/match/terms/{dir}.csv', 'w') as f:
+        w = csv.writer(f)
+        w.writerow(h)
+
+    ids, dat = set(), []
     for f in tqdm(fs, total=len(fs)):
         bin = DocBin().from_disk(f)
         for d in bin.get_docs(nlp.vocab):
@@ -108,22 +116,28 @@ def terms(dir: str, tag: str, terms_f: str):
                 continue
 
             ms = {d[bg:nd].text.lower() for _, bg, nd in ms}
-            for j, x in enumerate(combos):
+            for i, x in enumerate(combos):
                 ok = True
                 for y in x:
                     if not ms & y: 
                         ok = False
                         break
+
                 if ok:
-                    dat.append([id, ','.join(ms), raw[j]])
+                    dat.append([id, ','.join(ms), raw[i]])
+                    if len(dat) and not len(dat) % 100000:
+                        with open(f'out/match/terms/{dir}.csv', 'a') as f:
+                            w = csv.writer(f)
+                            w.writerows(dat)
+                            dat = []
+
                     break
 
-    dir = os.path.normpath(dir).split('/')[-1]
-    assert(len(ids) == stats[dir])
+    with open(f'out/match/terms/{dir}.csv', 'a') as f:
+        w = csv.writer(f)
+        w.writerows(dat)
 
-    df = data(dat, 'id matches combos')
-    os.makedirs('out/match/terms', exist_ok=True)
-    save(df, f'out/match/terms/{dir}.csv')
+    assert(len(ids) == stats[dir])
 
 if __name__ == '__main__':
     app()
