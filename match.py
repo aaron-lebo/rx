@@ -105,12 +105,11 @@ def terms(dir: str, tag: str, terms_f: str):
         w = csv.writer(f)
         w.writerow(h)
 
-    ids, dat = set(), []
+    n =0 
     for f in tqdm(fs, total=len(fs)):
-        bin = DocBin().from_disk(f)
+        dat, bin = [], DocBin().from_disk(f)
         for d in bin.get_docs(nlp.vocab):
-            id = d.user_data['id']
-            ids.add(id)
+            n += 1
             ms = match(d)
             if not ms: 
                 continue
@@ -124,20 +123,14 @@ def terms(dir: str, tag: str, terms_f: str):
                         break
 
                 if ok:
-                    dat.append([id, ','.join(ms), raw[i]])
-                    if len(dat) and not len(dat) % 100000:
-                        with open(f'out/match/terms/{dir}.csv', 'a') as f:
-                            w = csv.writer(f)
-                            w.writerows(dat)
-                            dat = []
-
+                    dat.append([d.user_data['id'], ','.join(ms), raw[i]])
                     break
 
-    with open(f'out/match/terms/{dir}.csv', 'a') as f:
-        w = csv.writer(f)
-        w.writerows(dat)
+        with open(f'out/match/terms/{dir}.csv', 'a') as f:
+            w = csv.writer(f)
+            w.writerows(dat)
 
-    assert(len(ids) == stats[dir])
+    assert(n == stats[dir])
 
 if __name__ == '__main__':
     app()
