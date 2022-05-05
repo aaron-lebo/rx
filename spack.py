@@ -47,7 +47,7 @@ def pack(file: str):
     if stat.ext == 'bz2':
         subprocess.run(['bzip2', '-dv', file+'.bz2'])
     else:
-        subprocess.run(['zstd', '-d', f'{file}.{stat.ext}', '--long=31'])
+        subprocess.run(['zstd', '-d', f'{file}.{stat.ext}', '--long=31', '--rm'])
 
     with open(file) as f:
         n = sum(1 for x in f)
