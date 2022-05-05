@@ -28,7 +28,7 @@ def save(dat, ks, file, day):
     if os.path.exists(pq):
         df = pd.concat([pd.read_parquet(pq), df])
 
-    df.to_parquet(pq)
+    df.sort_values(['id']).to_parquet(pq)
 
 @app.command()
 def pack(file: str):
