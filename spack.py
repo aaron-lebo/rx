@@ -36,6 +36,7 @@ def pack(file: str):
     pre = file1[:3]
     assert(pre in ('rc_', 'rs_'))
 
+    stat = stats[stats.file==file1].iloc[0]
     if pre == 'rc_':
         subprocess.run(['wget', f'https://files.pushshift.io/reddit/comments/{file}.{stat.ext}'])
         ks1 = ks+ks_com
@@ -43,7 +44,6 @@ def pack(file: str):
         subprocess.run(['wget', f'https://files.pushshift.io/reddit/submissions/{file}.zst'])
         ks1 = ks+ks_sub
 
-    stat = stats[stats.file==file1].iloc[0]
     if stat.ext == 'bz2':
         subprocess.run(['bzip2', '-dv', file+'.bz2'])
     else:
