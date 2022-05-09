@@ -1,9 +1,11 @@
 from datetime import datetime
-import json 
+import glob
+import json
 import subprocess
 import os
 
 import pandas as pd
+import spacy
 from tqdm.auto import tqdm
 import typer
 
@@ -16,6 +18,11 @@ stats.file, stats['ext'] = ext[0].str.lower(), ext[1]
 ks = 'id created_utc edited retrieved_on author subreddit'.split()
 ks_com = 'link_id parent_id body'.split()
 ks_sub = 'url title selftext'.split()
+
+def split(file: str):
+    f = os.path.normpath(file.lower()).split(os.sep)[-1]
+    assert(f[:3] in ('rc_', 'rs_'))
+    return f[:3], f
 
 def save(dat, ks, file, day):
     df = pd.DataFrame(dat, columns=ks).set_index('id')
@@ -32,10 +39,7 @@ def save(dat, ks, file, day):
 
 @app.command()
 def pack(file: str):
-    file1 = file.lower()
-    pre = file1[:3]
-    assert(pre in ('rc_', 'rs_'))
-
+    pre, file1 = split(file)
     stat = stats[stats.file==file1].iloc[0]
     if pre == 'rc_':
         subprocess.run(['wget', f'https://files.pushshift.io/reddit/comments/{file}.{stat.ext}'])
@@ -70,6 +74,31 @@ def pack(file: str):
         assert(n == i+1)
 
     os.remove(file)
+
+nlp = spacy.load('en_core_web_lg')
+
+def load(x, cols):
+    return '\n'.join(x[1][cols[1:]]), x[0]
+
+@app.command()
+def process(path: str):
+    for file in sorted(glob.glob(path)):
+        pre, _ = split(file)
+        cols = ['id', 'body'] if pre == 'rc_' else ['id', 'title', 'selftext'] 
+        df = pd.read_parquet(file, columns=cols)
+        p = nlp.pipe((load(x, cols) for x in df.iterrows()), as_tuples=True)
+        bar = tqdm(p, total=len(df))
+        bin = spacy.tokens.DocBin(store_user_data=True)
+        bar.set_description(file)
+        for d, id in bar:
+            d.user_data['id'] = id
+            bin.add(d)
+
+        f = file.replace('.pq', '.spacy')
+        if os.path.isfile(f):
+            raise FileExistsError
+
+        bin.to_disk(f)
 
 if __name__ == '__main__':
     app()
