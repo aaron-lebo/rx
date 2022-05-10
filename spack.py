@@ -40,14 +40,10 @@ def save(dat, ks, file, day):
 @app.command()
 def pack(file: str):
     pre, file1 = split(file)
+    what, ks1 = ('comments', ks+ks_com) if pre == 'rc_' else ('submissions', ks+ks_sub)
     stat = stats[stats.file==file1].iloc[0]
-    if pre == 'rc_':
-        subprocess.run(['wget', f'https://files.pushshift.io/reddit/comments/{file}.{stat.ext}'])
-        ks1 = ks+ks_com
-    else:
-        subprocess.run(['wget', f'https://files.pushshift.io/reddit/submissions/{file}.zst'])
-        ks1 = ks+ks_sub
 
+    subprocess.run(['wget', f'https://files.pushshift.io/reddit/{what}/{file}.{stat.ext}'])
     if stat.ext == 'bz2':
         subprocess.run(['bzip2', '-dv', file+'.bz2'])
     else:
