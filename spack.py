@@ -25,7 +25,7 @@ def split(file: str):
     return f[:3], f
 
 def save(dat, ks, file, day):
-    df = pd.DataFrame(dat, columns=ks).set_index('id')
+    df = pd.DataFrame(dat, columns=ks).drop_duplicates('id').set_index('id')
     df.created_utc = pd.to_datetime(df.created_utc, unit='s')
     df.loc[df.edited==False, 'edited'] = None
     df.edited = pd.to_datetime(df.edited, unit='s')
