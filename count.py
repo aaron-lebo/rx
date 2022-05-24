@@ -15,15 +15,15 @@ def split(file: str):
 def add(cnts, k, df):
     v = cnts.get(k)
     if v is None:
-        cnts[k] = df.value_counts('subreddit')
+        cnts[k] = df.value_counts('author', 'subreddit')
     else:
-        cnts[k] = v.add(df.value_counts('subreddit'), fill_value=0)
+        cnts[k] = v.add(df.value_counts('author', 'subreddit'), fill_value=0)
 
 @app.command()
 def count(path: str):
     cnts, fs = {}, sorted(glob.glob(path))
     for f in tqdm(fs, total=len(fs)):
-        k, df = split(f), pd.read_parquet(f, columns=['subreddit'])
+        k, df = split(f), pd.read_parquet(f, columns=['author', 'subreddit'])
         add(cnts, k, df)
 
     dfs = []
@@ -42,13 +42,13 @@ def matches(dir: str):
     for f in tqdm(fs, total=len(fs)):
         rs.update(pd.read_parquet(f, columns=[]).index)
 
-    rs = pd.DataFrame(rs).to_csv('rs.csv')
+    rs = pd.DataFrame(rs, columns=['id']).to_csv('rs.csv', index=False)
 
     rc, fs = set(), sorted(glob.glob('terms/rc_*.pq'))
     for f in tqdm(fs, total=len(fs)):
         rc.update(pd.read_parquet(f, columns=[]).index)
 
-    pd.DataFrame(rc).to_csv('rc.csv')
+    pd.DataFrame(rc, columns=['id']).to_csv('rc.csv', index=False)
 
     dfs, rs_rel, rc_rel = [], set(), {'t1_'+x for x in rc}
     fs = sorted(glob.glob(f'{dir}/rc_*.pq'))
@@ -65,13 +65,13 @@ def matches(dir: str):
         rc_rel.update({'t1_'+x for x in df[df.parent_id.isin(rc_rel)].index})
         rs_rel.update(df[df.index.isin(rc)].link_id)
 
-    pd.DataFrame(rc_rel).to_csv('rc_rel.csv')
-    pd.DataFrame(rs_rel).to_csv('rs_rel.csv')
+    pd.DataFrame(rc_rel, columns=['id']).to_csv('rc_rel.csv', index=False)
+    pd.DataFrame(rs_rel, columns=['id']).to_csv('rs_rel.csv', index=False)
 
 @app.command()
 def count_matches(dir: str, comments: bool, relatives: bool):
     pre = 'rc' if comments else 'rs'
-    ids = matches = set(pd.read_csv(pre+'.csv').id)
+    ids = matches = set(pd.read_csv(pre+'.csv').id])
     if relatives:
         rels = ids = set(pd.read_csv(pre+'_rel.csv').id.str[3:])
         rels.difference_update(matches)
@@ -79,7 +79,7 @@ def count_matches(dir: str, comments: bool, relatives: bool):
 
     cnts, fs = {}, sorted(glob.glob(f'{dir}/{pre}_*.pq'))
     for f in tqdm(fs, total=len(fs)):
-        k, df = split(f), pd.read_parquet(f, columns=['subreddit'])
+        k, df = split(f), pd.read_parquet(f, columns=['author', 'subreddit'])
         add(cnts, k, df[df.index.isin(ids)])
 
     dfs = []
