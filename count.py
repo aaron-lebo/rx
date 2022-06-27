@@ -15,15 +15,16 @@ def split(file: str):
 def add(cnts, k, df):
     v = cnts.get(k)
     if v is None:
-        cnts[k] = df.value_counts('author', 'subreddit')
+        cnts[k] = df.value_counts(list(df.columns))
     else:
-        cnts[k] = v.add(df.value_counts('author', 'subreddit'), fill_value=0)
+        cnts[k] = v.add(df.value_counts(list(df.columns)), fill_value=0)
 
 @app.command()
 def count(path: str):
     cnts, fs = {}, sorted(glob.glob(path))
     for f in tqdm(fs, total=len(fs)):
-        k, df = split(f), pd.read_parquet(f, columns=['author', 'subreddit'])
+        #k, df = split(f), pd.read_parquet(f, columns=['author', 'subreddit'])
+        k, df = split(f), pd.read_parquet(f, columns=['subreddit'])
         add(cnts, k, df)
 
     dfs = []
@@ -71,7 +72,7 @@ def matches(dir: str):
 @app.command()
 def count_matches(dir: str, comments: bool, relatives: bool):
     pre = 'rc' if comments else 'rs'
-    ids = matches = set(pd.read_csv(pre+'.csv').id])
+    ids = matches = set(pd.read_csv(pre+'.csv').id)
     if relatives:
         rels = ids = set(pd.read_csv(pre+'_rel.csv').id.str[3:])
         rels.difference_update(matches)
